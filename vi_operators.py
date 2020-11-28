@@ -279,6 +279,7 @@ class NODE_OT_SVF(bpy.types.Operator):
         scene = context.scene 
         svp = scene.vi_params
         svp.vi_display = 0
+        dp = context.evaluated_depsgraph_get()
         
         if viparams(self, scene):            
             return {'CANCELLED'}
@@ -345,9 +346,10 @@ class NODE_OT_SVF(bpy.types.Operator):
 
             ovp['omin'], ovp['omax'], ovp['oave'] = {}, {}, {}
             bm = bmesh.new()
-            bm.from_mesh(o.data)
+            bm.from_object(o, dp)
             clearlayers(bm, 'a')
             bm.transform(o.matrix_world)
+            bm.normal_update()
             geom = bm.faces if simnode.cpoint == '0' else bm.verts
             geom.layers.int.new('cindex')
             cindex = geom.layers.int['cindex']
