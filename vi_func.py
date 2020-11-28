@@ -1386,7 +1386,6 @@ def retobjs(otypes):
     scene = bpy.context.scene
     svp = scene.vi_params
     validobs = [o for o in scene.objects if o.visible_get() and '/' not in o.name and o not in retrobjs(scene.objects)]
-    print([o.name for o in validobs])
 
     for o in scene.objects:
         if '/' in o.name:
