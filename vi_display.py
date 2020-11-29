@@ -213,6 +213,7 @@ def li_display(disp_op, simnode):
     svp = scene.vi_params
     svp['liparams']['livir'] = []
     setscenelivivals(scene)
+    dp = bpy.context.evaluated_depsgraph_get()
 
     try:
         scene.display_settings.display_device = 'None'
@@ -242,9 +243,11 @@ def li_display(disp_op, simnode):
     
     for i, o in enumerate([scene.objects[oname] for oname in svp['liparams']['{}c'.format(mtype)]]):        
         bm = bmesh.new()
-        tempmesh = o.to_mesh()
-        bm.from_mesh(tempmesh)
-        o.to_mesh_clear() 
+        bm.from_object(o, dp)
+#            tempmesh = ob.evaluated_get(dp).to_mesh()
+#            bm.from_mesh(tempmesh)
+#        bm.transform(o.matrix_world)
+#        bm.normal_update() 
         ovp = o.vi_params
                       
         if svp['liparams']['cp'] == '0':  
@@ -422,11 +425,12 @@ class linumdisplay():
         for ob in self.obd:
             res = []
             bm = bmesh.new()
-            tempmesh = ob.evaluated_get(dp).to_mesh()
-            bm.from_mesh(tempmesh)
+            bm.from_object(ob, dp)
+#            tempmesh = ob.evaluated_get(dp).to_mesh()
+#            bm.from_mesh(tempmesh)
             bm.transform(ob.matrix_world)
             bm.normal_update() 
-            ob.to_mesh_clear()
+#            ob.to_mesh_clear()
             var = svp.li_disp_menu
             geom = bm.faces if bm.faces.layers.float.get('{}{}'.format(var, scene.frame_current)) else bm.verts
             geom.ensure_lookup_table()
@@ -489,8 +493,9 @@ class linumdisplay():
                 self.alldepths = nappend(self.alldepths, array(depths))
                 self.allres = nappend(self.allres, array(res))
 
-        self.alldepths = self.alldepths/nmin(self.alldepths) 
-        draw_index_distance(self.allpcs, self.allres, self.fontmult * svp.vi_display_rp_fs, svp.vi_display_rp_fc, svp.vi_display_rp_fsh, self.alldepths)
+        if any(self.alldepths):
+            self.alldepths = self.alldepths/nmin(self.alldepths)
+            draw_index_distance(self.allpcs, self.allres, self.fontmult * svp.vi_display_rp_fs, svp.vi_display_rp_fc, svp.vi_display_rp_fsh, self.alldepths)
 
 class Base_Display():
     def __init__(self, ipos, width, height, xdiff, ydiff):

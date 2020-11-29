@@ -502,6 +502,7 @@ class NODE_OT_Shadow(bpy.types.Operator):
 #            bm.from_mesh(o.data)
             clearlayers(bm, 'a')
             bm.transform(o.matrix_world)
+            bm.normal_update()
             geom = bm.faces if simnode.cpoint == '0' else bm.verts
             geom.layers.int.new('cindex')
             cindex = geom.layers.int['cindex']
