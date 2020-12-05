@@ -1246,7 +1246,7 @@ class NODE_OT_Li_Gl(bpy.types.Operator):
             egcmd = 'evalglare {} -c {}'.format(('-u {0[0]} {0[1]} {0[2]}'.format(glnode.gc), '')[glnode.rand], glfile)
 
             with open(im, 'r') as hdrfile:
-                egrun = Popen(egcmd.split(), stdin = hdrfile, stdout = PIPE, stderr = PIPE)
+                egrun = Popen(shlex.split(egcmd), stdin = hdrfile, stdout = PIPE, stderr = PIPE)
 
             time = datetime.datetime(2014, 1, 1, imnode['coptions']['shour'], 0) + datetime.timedelta(imnode['coptions']['sdoy'] - 1) if imnode['coptions']['anim'] == '0' else \
                 datetime.datetime(2014, 1, 1, int(imnode['coptions']['shour']), int(60*(imnode['coptions']['shour'] - int(imnode['coptions']['shour'])))) + datetime.timedelta(imnode['coptions']['sdoy'] - 1) + datetime.timedelta(hours = int(imnode['coptions']['interval']*i), 
@@ -1274,16 +1274,16 @@ class NODE_OT_Li_Gl(bpy.types.Operator):
             pcondcmd = "pcond -h+ -u 300 {}.hdr".format(os.path.join(svp['viparams']['newdir'], 'images', '{}-{}'.format(glnode['hdrname'], str(i + svp['liparams']['fs']))))
 
             with open('{}.temphdr'.format(os.path.join(svp['viparams']['newdir'], 'images', 'glare')), 'w') as temphdr:
-                Popen(pcondcmd.split(), stdout = temphdr).communicate()
+                Popen(shlex.split(pcondcmd), stdout = temphdr).communicate()
 
             catcmd = "{0} {1}.glare".format(svp['viparams']['cat'], os.path.join(svp['viparams']['newdir'], 'images', 'temp'))
-            catrun = Popen(catcmd, stdout = PIPE, shell = True)
+            catrun = Popen(shlex.split(catcmd), stdout = PIPE, shell = True)
             psigncmd = "psign -h {} -cb 0 0 0 -cf 1 1 1".format(int(0.04 * imnode.y))
-            psignrun = Popen(psigncmd.split(), stdin = catrun.stdout, stdout = PIPE)
+            psignrun = Popen(shlex.split(psigncmd), stdin = catrun.stdout, stdout = PIPE)
             pcompcmd = "pcompos {0}.temphdr 0 0 - {1} {2}".format(os.path.join(svp['viparams']['newdir'], 'images', 'glare'), imnode.x, imnode.y*550/800)
 
             with open("{}.hdr".format(os.path.join(svp['viparams']['newdir'], 'images', '{}-{}'.format(glnode['hdrname'], str(i + svp['liparams']['fs'])))), 'w') as ghdr:
-                Popen(pcompcmd.split(), stdin = psignrun.stdout, stdout = ghdr).communicate()
+                Popen(shlex.split(pcompcmd), stdin = psignrun.stdout, stdout = ghdr).communicate()
 
             os.remove(os.path.join(svp['viparams']['newdir'], 'images', 'glare.temphdr'.format(i + svp['liparams']['fs'])))  
             glnode.postsim()                             
@@ -1319,11 +1319,11 @@ class NODE_OT_Li_Fc(bpy.types.Operator):
                     temp_file = os.path.join(svp['viparams']['newdir'], 'images', 'temp.hdr')
                     
                     with open(temp_file, 'w') as tfile:
-                        Popen('pcond -e {} {}'.format(fcnode.disp, os.path.abspath(im)).split(), stdout = tfile)
+                        Popen(shlex.split('pcond -e {} {}'.format(fcnode.disp, os.path.abspath(im)).split()), stdout = tfile)
                     
                     poverlay = '-p {}'.format(os.path.join(context.scene['viparams']['newdir'], 'images', 'temp.hdr')) if fcnode.contour and fcnode.overlay else ''
                     fccmd = 'falsecolor -i {} {} -pal {} {} {} {}'.format(os.path.abspath(im), poverlay, fcnode.coldict[fcnode.colour], legend, contour, divisions) 
-                    fcrun = Popen(fccmd.split(), stdout=fcfile, stderr = PIPE) 
+                    fcrun = Popen(shlex.split(fccmd), stdout=fcfile, stderr = PIPE) 
 #                    os.remove(temp_file)
                 else:
                     poverlay = '-p <(pcond -e {0} {1})' .format(fcnode.disp, ofile) if fcnode.contour and fcnode.overlay else ''

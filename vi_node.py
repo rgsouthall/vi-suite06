@@ -1756,9 +1756,6 @@ class No_Vi_Metrics(Node, ViNodes):
                 if znames:
                     return [(zn, zn, 'Zone name') for zn in znames] + [('All', 'All', 'All zones')]
                 else:
-#                    if self.zone_menu != 'None':
-#                    print(self.zone_menu)
-#                        self.zone_menu = 'None'
                     return [('None', 'None', 'None')]
 
                 return [(zn, zn, 'Zone name') for zn in znames] + [('All', 'All', 'All zones')]
@@ -2054,10 +2051,7 @@ class No_Vi_Metrics(Node, ViNodes):
                 self['res']['zvelocity'] = {}
                 self['res']['yvelocity'] = {}
                 self['res']['wpc'] = {}
-
-#                if self.frame_menu == 'All':
                 znames = set([z[2] for z in rl if z[1] == 'Zone'])
-#                print('zname', znames)
 
                 for zn in znames:
                     for r in rl:
