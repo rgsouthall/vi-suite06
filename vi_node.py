@@ -1800,6 +1800,7 @@ class No_Vi_Metrics(Node, ViNodes):
                                     ("1", "LEED", "LEED v4 results"),
                                     ("2", "RIBA 2030", "RIBA 2030 results")],
                 name="", description="Results metric", default="0", update=zupdate)
+    leed_menu: BoolProperty(name = "", description = "LEED space type", default = 0)
     riba_menu: EnumProperty(items=[("0", "Domestic", "Domestic scenario"),
                                     ("1", "Non-domestic", "Non-domestic scenario")],
                 name="", description="Results metric", default="0", update=zupdate)
@@ -1884,11 +1885,14 @@ class No_Vi_Metrics(Node, ViNodes):
                 row.label(text = "Uniformity: {} {}".format(self['res']['ratioDF'], udfpass))
                 
             if self.light_menu == '1':
+                newrow(layout, 'Healthcare', self, 'leed_menu')
+                (l, h) = (75, 90) if self.leed_menu else (55, 75)
+
                 if self['res'] and self['res'].get('ase'): 
                     if self['res']['ase'] < 0:
                         (sda, ase, o1) = ('sDA300 (%): N/A', 'ASE1000 (hours): N/A', 'Total credits: N/A')
                     else:
-                        (sda, ase, o1) = ('sDA300 (%): {:.1f} | > (55, 75) | {}'.format(self['res']['sda'], ('Pass', 'Fail')[self['res']['sda'] < 55]), 
+                        (sda, ase, o1) = ('sDA300 (%): {0:.1f} | > ({1[0]}, {1[1]}) | {2}'.format(self['res']['sda'], (l, h), ('Pass', 'Fail')[self['res']['sda'] < 55]), 
                         'ASE1000 (hours): {:.0f} | < 250 | {}'.format(self['res']['ase'], ('Pass', 'Fail')[self['res']['ase'] > 250]), 
                         'Total credits: {}'.format(self['res']['o1']))
                     row = layout.row()
@@ -2026,6 +2030,7 @@ class No_Vi_Metrics(Node, ViNodes):
                             if r[2] == self.zone_menu:
                                 if r[3] == 'Annual Sunlight Exposure (% area)':
                                     aseareas = array([float(p) for p in r[4].split()])
+                                    print(list(aseareas))
                                     self['res']['ase'] = len(aseareas[aseareas > 10])
                                 elif r[3] == 'Spatial Daylight Autonomy (% area)': 
                                     sdaareas = array([float(p) for p in r[4].split()])                                
@@ -2038,10 +2043,12 @@ class No_Vi_Metrics(Node, ViNodes):
                                     self['res']['udiae'] = udiaareas[ie]
 
                     if self['res']['ase'] < 250:
-                        if self['res']['sda'] > 55:
-                            self['res']['o1'] = 2  
-                        if self['res']['sda'] > 75:
-                            self['res']['o1'] = 3
+                        if self['res']['sda'] > (55, 75)[self.leed_menu]:
+                            self['res']['o1'] = (2, 1)[self.leed_menu]  
+                        if self['res']['sda'] > (75, 90)[self.leed_menu]:
+                            self['res']['o1'] = (3, 2)[self.leed_menu]
+                    else:
+                        self['res']['o1'] = 0
 
             elif self.metric == '2':        
                 self['res']['pressure'] = {}
