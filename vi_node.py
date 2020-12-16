@@ -2030,7 +2030,6 @@ class No_Vi_Metrics(Node, ViNodes):
                             if r[2] == self.zone_menu:
                                 if r[3] == 'Annual Sunlight Exposure (% area)':
                                     aseareas = array([float(p) for p in r[4].split()])
-                                    print(list(aseareas))
                                     self['res']['ase'] = len(aseareas[aseareas > 10])
                                 elif r[3] == 'Spatial Daylight Autonomy (% area)': 
                                     sdaareas = array([float(p) for p in r[4].split()])                                
