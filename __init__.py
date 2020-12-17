@@ -69,6 +69,24 @@ else:
         
         elif sys.version_info[1] >= 8:
             os.add_dll_directory(os.path.join(addonpath, 'Python', sys.platform))
+
+    if sys.platform in ('linux', 'darwin'):
+        for fn in ('cnt', 'epw2wea', 'evalglare', 'falsecolor', 'genBSDF', 'gendaylit', 'gendaymtx', 'gensky',
+                    'getbbox', 'getinfo', 'ies2rad', 'mkpmap', 'obj2mesh', 'oconv', 'pcomb', 'pcompos', 'pcond',
+                    'pfilt', 'pkgBSDF', 'pmapdump', 'psign', 'rad2mgf', 'rcalc', 'rcontrib', 'rfluxmtx', 'rmtxop',
+                    'rpict', 'rpiece', 'rtrace', 'rttree_reduce', 'rvu', 'vwrays', 'wrapBSDF', 'xform'):            
+            try:
+                if not os.access(os.path.join(addonpath, 'RadFiles', sys.platform, 'bin', fn), os.X_OK):
+                    os.chmod(os.path.join(addonpath, 'RadFiles', sys.platform, 'bin', fn), 0o775)
+            except:
+                print('{} not found'.format(fn))
+
+        for fn in ('energyplus-9.3.0', 'ExpandObjects'):
+            try:
+                if not os.access(os.path.join(addonpath, 'EPFiles', sys.platform, fn), os.X_OK):
+                    os.chmod(os.path.join(addonpath, 'EPFiles', sys.platform, fn), 0o775)
+            except:
+                print('{} not found'.format(fn))
          
     from .vi_node import vinode_categories, envinode_categories, envimatnode_categories, ViNetwork, No_Loc, So_Vi_Loc 
     from .vi_node import No_Vi_SP, No_Vi_WR, No_Vi_SVF, So_Vi_Res, No_Vi_SS
