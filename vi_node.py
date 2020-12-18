@@ -1912,8 +1912,10 @@ class No_Vi_Metrics(Node, ViNodes):
 
         elif self.metric == '1':
             if self.light_menu == '0':
+                areaDF = 'N/A' if self['res']['areaDF'] < 0 else self['res']['areaDF']
+                    
                 row = layout.row()
-                row.label(text = "Area DF: {}%".format(self['res']['areaDF']))
+                row.label(text = "Compliant area: {}%".format(areaDF))
 
             elif self.light_menu == '2':
                 if self['res']['avDF'] < 0:
@@ -2096,20 +2098,23 @@ class No_Vi_Metrics(Node, ViNodes):
                                 elif r[3] == 'DF (%)':
                                     df = array([float(p) for p in r[4].split()])
 
-                    self['res']['avDF'] = round(sum(df * dfareas)/sum(dfareas), 2)
-                    tdf = stack((df, dfareas), axis=1)
-                    stdf = tdf[tdf[:,0].argsort()][::-1]
-                    aDF = stdf[0][0]
-                    rarea = stdf[0][1] 
-                    i = 1
+                    try:
+                        self['res']['avDF'] = round(sum(df * dfareas)/sum(dfareas), 2)
+                        tdf = stack((df, dfareas), axis=1)
+                        stdf = tdf[tdf[:,0].argsort()][::-1]
+                        aDF = stdf[0][0]
+                        rarea = stdf[0][1] 
+                        i = 1
 
-                    while (aDF >= mDF and i < len(df)):
-                        aDF = stdf[i][0]
-                        rarea += stdf[i][1]
-                        i += 1
+                        while (aDF >= mDF and i < len(df)):
+                            aDF = sum(stdf[0: i + 1, 0] * dfareas[0: i + 1])/sum(dfareas[0: i + 1])
+                            rarea += stdf[i][1]
+                            i += 1
 
-                    self['res']['areaDF'] = round(rarea, 2)
-                    self['res']['ratioDF'] = round(min(df)/self['res']['avDF'], 2)
+                        self['res']['areaDF'] = round(100 * rarea/sum(dfareas), 2)
+                        self['res']['ratioDF'] = round(min(df)/self['res']['avDF'], 2)
+                    except:
+                        pass
 
                 elif self.light_menu == '2':
                     for r in rl:
