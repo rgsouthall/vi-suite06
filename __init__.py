@@ -152,9 +152,8 @@ def unititems(self, context):
         if svp['liparams']['unit'] == 'W/m2 (f)':
             return [('firradm2', 'W/m2', 'Full spectrum irradiance per metre square'),
                     ('firrad', 'W', 'Full spectrum irradiance')]
-        elif svp['liparams']['unit'] == 'Lux':
+        elif svp['liparams']['unit'] in ('Lux', 'DF'):
             return [('illu', 'Lux', 'Illuminance'), 
-                    ('virradm2', 'Watts/m2', 'Visible spectrum illuminance'),
                     ('virrad', 'Watts', 'Visible spectrum illuminance')]
         elif svp['liparams']['unit'] == 'lxh':
             return [('illuh', 'Lux-hours', 'Lux-hours'), ('virradh', 'kWh (v)', 'kilo-Watt hours (visible)'), ('virradhm2', 'kWh/m2 (v)', 'kilo-Watt hours per square metre (visible)')]

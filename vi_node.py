@@ -29,7 +29,7 @@ from .livi_func import hdrsky, cbdmhdr, cbdmmtx, retpmap, validradparams, sunpos
 from .envi_func import retrmenus, resnameunits, enresprops, epentry, epschedwrite, processf, get_mat, get_con_node, get_con_node2
 from .livi_export import livi_sun, livi_sky, livi_ground, hdrexport
 from .envi_mat import envi_materials, envi_constructions, envi_embodied, envi_layer, envi_layertype, envi_con_list
-from numpy import where, sort, median, array
+from numpy import where, sort, median, array, argsort, stack
 from .vi_dicts import rpictparams, rvuparams
 
 try:
@@ -636,8 +636,8 @@ class No_Li_Con(Node, ViNodes):
         (csh, ceh) = (self.cbdm_start_hour, self.cbdm_end_hour) if not self.ay or (self.cbanalysismenu == '2' and self.leed4) else (1, 24)  
         (sdoy, edoy) =  (self.sdoy, self.edoy) if self.contextmenu == '0' or not self.ay else (1, 365)
         typedict = {'Basic': '0', 'Compliance': self.canalysismenu, 'CBDM': self.cbanalysismenu}
-        unitdict = {'Basic': ("Lux", 'W/m2 (f)')[self.skyprog == '1' and self.spectrummenu =='1'], 
-                    'Compliance': ('DF (%)', 'DF (%)', 'DF (%)', 'sDA (%)')[int(self.canalysismenu)], 
+        # ('Lux', 'DF') below to store DF valus in the object
+        unitdict = {'Basic': (("Lux", "DF")[self.skyprog == '0' and self.skymenu == '3'], 'W/m2 (f)')[self.skyprog == '1' and self.spectrummenu =='1'], 
                     'CBDM': (('lxh', 'kWh (f)')[int(self.spectrummenu)], 'kWh (f)', 'DA (%)')[int(self.cbanalysismenu)]}
         btypedict = {'0': self.bambuildmenu, '1': '', '2': self.bambuildmenu, '3': self.lebuildmenu}
         self['Options'] = {'Context': self.contextmenu, 'Preview': self['preview'], 'Type': typedict[self.contextmenu], 
@@ -1801,9 +1801,34 @@ class No_Vi_Metrics(Node, ViNodes):
                                     ("2", "RIBA 2030", "RIBA 2030 results")],
                 name="", description="Results metric", default="0", update=zupdate)
     leed_menu: BoolProperty(name = "", description = "LEED space type", default = 0)
+    breeam_menu: EnumProperty(items=[("0", "Education", "Education scenario"),
+                                    ("1", "Healthcare", "Healthcare scenario"),
+                                    ("2", "Multi-residential", "Multi-residential scenario"),
+                                    ("3", "Retail", "Retail scenario"),
+                                    ("4", "Other", "Other scenario")],
+                name="", description="BREEAM space type", default="0", update=zupdate)
+    breeam_edumenu: EnumProperty(items=[("0", "School", "School context"),
+                                        ("1", "Higher education", "Higher education scenario")],
+                name="", description="BREEAM education space type", default="0", update=zupdate)  
+    breeam_healthmenu: EnumProperty(items=[("0", "Staff/public", "Staff/public context"),
+                                        ("1", "Patient", "Patient scenario")],
+                name="", description="BREEAM healthcare space type", default="0", update=zupdate)   
+    breeam_multimenu: EnumProperty(items=[("0", "Kitchen", "Staff/public context"),
+                                        ("1", "Living", "Patient scenario"),
+                                        ("2", "Communal", "Patient scenario")],
+                name="", description="BREEAM multi-residential space type", default="0", update=zupdate) 
+    breeam_retailmenu: EnumProperty(items=[("0", "Sales", "Staff/public context"),
+                                        ("1", "Other", "Patient scenario")],
+                name="", description="BREEAM retail space type", default="0", update=zupdate) 
+    breeam_othermenu: EnumProperty(items=[("0", "Cells", "Custody cells context"),
+                                        ("1", "Atrium", "Communal area scenario"),
+                                        ("2", "Care", "Patient care scenario"),
+                                        ("3", "Lecture", "Lecture scenario"),
+                                        ("4", "Other", "All other scenario")],
+                name="", description="BREEAM other space type", default="0", update=zupdate)                    
     riba_menu: EnumProperty(items=[("0", "Domestic", "Domestic scenario"),
                                     ("1", "Non-domestic", "Non-domestic scenario")],
-                name="", description="Results metric", default="0", update=zupdate)
+                name="", description="RIBA space type", default="0", update=zupdate)
     zone_menu: EnumProperty(items=zitems,
                 name="", description="Zone results", update=zupdate)
     frame_menu: EnumProperty(items=frames,
@@ -1822,8 +1847,23 @@ class No_Vi_Metrics(Node, ViNodes):
 
         if self.metric == '0':
             newrow(layout, 'Metric:', self, "energy_menu")
+
         elif self.metric == '1':
             newrow(layout, 'Metric:', self, "light_menu")
+
+            if self.light_menu == '0':
+                newrow(layout, 'Space:', self, "breeam_menu")
+                if self.breeam_menu == '0':
+                    newrow(layout, 'Education space:', self, "breeam_edumenu")
+                elif self.breeam_menu == '1':
+                    newrow(layout, 'Health space:', self, "breeam_healthmenu")
+                elif self.breeam_menu == '2':
+                    newrow(layout, 'Multi-res space:', self, "breeam_multimenu")
+                elif self.breeam_menu == '3':
+                    newrow(layout, 'Retail space:', self, "breeam_retailmenu")
+                elif self.breeam_menu == '4':
+                    newrow(layout, 'Other space:', self, "breeam_othermenu")
+
 
         newrow(layout, 'Frame', self, "frame_menu")
         newrow(layout, 'Zone', self, "zone_menu")
@@ -1871,7 +1911,11 @@ class No_Vi_Metrics(Node, ViNodes):
                     row.label(text = "Operational: {} {}".format(self['res']['totkwh'], epass))
 
         elif self.metric == '1':
-            if self.light_menu == '2':
+            if self.light_menu == '0':
+                row = layout.row()
+                row.label(text = "Area DF: {}%".format(self['res']['areaDF']))
+
+            elif self.light_menu == '2':
                 if self['res']['avDF'] < 0:
                     (dfpass, udfpass, avDF, uDF) = ('N/A', 'N/A', 'N/A', 'N/A')
                 else:
@@ -1884,7 +1928,7 @@ class No_Vi_Metrics(Node, ViNodes):
                 row = layout.row()
                 row.label(text = "Uniformity: {} {}".format(self['res']['ratioDF'], udfpass))
                 
-            if self.light_menu == '1':
+            elif self.light_menu == '1':
                 newrow(layout, 'Healthcare', self, 'leed_menu')
                 (l, h) = (75, 90) if self.leed_menu else (55, 75)
 
@@ -2004,12 +2048,70 @@ class No_Vi_Metrics(Node, ViNodes):
             elif self.metric == '1':
                 self['res']['avDF'] = -1
                 self['res']['ratioDF'] = -1
+                self['res']['areaDF'] = -1
                 self['res']['ase'] = -1
                 self['res']['sda'] = -1
                 self['res']['auto'] = -1
                 self['res']['o1'] = -1
                 
-                if self.light_menu == '2':
+                if self.light_menu == '0':
+                    if self.breeam_menu == '0':
+                        mDF = 2
+                        mA = 0.8
+                        cred = 2
+                        if self.breeam_edumenu == '1':
+                            mA = 0.6
+                            cred = 1
+                    elif self.breeam_menu == '1': 
+                        cred = 2
+                        mA = 0.8
+                        mDF = 2
+                        if self.breeam_healthmenu == '1':
+                            mDF = 3
+                    elif self.breeam_menu == '2': 
+                        cred = 1
+                        mDF = 2
+                        mA = 0.8
+                    elif self.breeam_menu == '3': 
+                        cred = 1
+                        mDF = 2
+                        mA = 0.8
+                        if self.breeam_retailmenu == '0':
+                            mA = 0.35
+                    elif self.breeam_menu == '4': 
+                        cred = 1
+                        mA = 0.8
+                        if self.breeam_othermenu == '0':
+                            mDF = 1.5
+                        elif self.breeam_othermenu in ('1', '2'):
+                            mDF = 3
+                        else:
+                            mDF = 2
+
+                    for r in rl:
+                        if r[0] == self.frame_menu:
+                            if r[2] == self.zone_menu:
+                                if r[3] == 'Areas (m2)':
+                                    dfareas = array([float(p) for p in r[4].split()])
+                                elif r[3] == 'DF (%)':
+                                    df = array([float(p) for p in r[4].split()])
+
+                    self['res']['avDF'] = round(sum(df * dfareas)/sum(dfareas), 2)
+                    tdf = stack((df, dfareas), axis=1)
+                    stdf = tdf[tdf[:,0].argsort()][::-1]
+                    aDF = stdf[0][0]
+                    rarea = stdf[0][1] 
+                    i = 1
+
+                    while (aDF >= mDF and i < len(df)):
+                        aDF = stdf[i][0]
+                        rarea += stdf[i][1]
+                        i += 1
+
+                    self['res']['areaDF'] = round(rarea, 2)
+                    self['res']['ratioDF'] = round(min(df)/self['res']['avDF'], 2)
+
+                elif self.light_menu == '2':
                     for r in rl:
                         if r[0] == self.frame_menu:
                             if r[2] == self.zone_menu:
