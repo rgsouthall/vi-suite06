@@ -30,6 +30,7 @@ from .envi_func import retrmenus, resnameunits, enresprops, epentry, epschedwrit
 from .livi_export import livi_sun, livi_sky, livi_ground, hdrexport
 from .envi_mat import envi_materials, envi_constructions, envi_embodied, envi_layer, envi_layertype, envi_con_list
 from numpy import where, sort, median, array, argsort, stack
+from numpy import sum as nsum
 from .vi_dicts import rpictparams, rvuparams
 
 try:
@@ -636,7 +637,7 @@ class No_Li_Con(Node, ViNodes):
         (csh, ceh) = (self.cbdm_start_hour, self.cbdm_end_hour) if not self.ay or (self.cbanalysismenu == '2' and self.leed4) else (1, 24)  
         (sdoy, edoy) =  (self.sdoy, self.edoy) if self.contextmenu == '0' or not self.ay else (1, 365)
         typedict = {'Basic': '0', 'Compliance': self.canalysismenu, 'CBDM': self.cbanalysismenu}
-        # ('Lux', 'DF') below to store DF valus in the object
+        # ('Lux', 'DF') below to store DF values in the object
         unitdict = {'Basic': (("Lux", "DF")[self.skyprog == '0' and self.skymenu == '3'], 'W/m2 (f)')[self.skyprog == '1' and self.spectrummenu =='1'], 
                     'CBDM': (('lxh', 'kWh (f)')[int(self.spectrummenu)], 'kWh (f)', 'DA (%)')[int(self.cbanalysismenu)]}
         btypedict = {'0': self.bambuildmenu, '1': '', '2': self.bambuildmenu, '3': self.lebuildmenu}
@@ -1259,8 +1260,9 @@ class No_Text(Node, ViNodes):
         if self.inputs['Text in'].links:
             inodename = self.inputs['Text in'].links[0].from_node.name
             row = layout.row()
-            row.label(text = 'Text name: {}'.format(inodename))            
-            if inodename in [im.name for im in bpy.data.texts] and self['bt'] != bpy.data.texts[inodename].as_string():
+            row.label(text = 'Text name: {}'.format(inodename)) 
+
+            if self['bt']:
                 row = layout.row()
                 row.operator('node.textupdate', text = 'Update')
 
@@ -1630,29 +1632,31 @@ class No_Vi_Chart(Node, ViNodes):
                     
             else:
                 innode = self.inputs['X-axis'].links[0].from_node
-                rl = innode['reslists']
-                zrl = list(zip(*rl))
-                try:
-                    if len(set(zrl[0])) > 1:
-                        self['pmitems'] = [("0", "Static", "Static results"), ("1", "Parametric", "Parametric results")]
-                    else:
+                rl = innode.get('reslists')
+
+                if rl:
+                    zrl = list(zip(*rl))
+                    try:
+                        if len(set(zrl[0])) > 1:
+                            self['pmitems'] = [("0", "Static", "Static results"), ("1", "Parametric", "Parametric results")]
+                        else:
+                            self['pmitems'] = [("0", "Static", "Static results")]
+                    except:
                         self['pmitems'] = [("0", "Static", "Static results")]
-                except:
-                    self['pmitems'] = [("0", "Static", "Static results")]
-                
-                time.sleep(0.1)
-    
-                if self.parametricmenu == '1' and len(set(zrl[0])) > 1:
-                    frames = [int(k) for k in set(zrl[0]) if k != 'All']
-                    startframe, endframe = min(frames), max(frames)
-                    self["_RNA_UI"] = {"Start": {"min":startframe, "max":endframe}, "End": {"min":startframe, "max":endframe}}
-                    self['Start'], self['End'] = startframe, endframe
-                else:
-                    if 'Month' in zrl[3]:
-                        startday = datetime.datetime(int(innode['year']), int(zrl[4][zrl[3].index('Month')].split()[0]), int(zrl[4][zrl[3].index('Day')].split()[0])).timetuple().tm_yday
-                        endday = datetime.datetime(int(innode['year']), int(zrl[4][zrl[3].index('Month')].split()[-1]), int(zrl[4][zrl[3].index('Day')].split()[-1])).timetuple().tm_yday
-                        self["_RNA_UI"] = {"Start": {"min":startday, "max":endday}, "End": {"min":startday, "max":endday}}
-                        self['Start'], self['End'] = startday, endday
+                    
+                    time.sleep(0.1)
+        
+                    if self.parametricmenu == '1' and len(set(zrl[0])) > 1:
+                        frames = [int(k) for k in set(zrl[0]) if k != 'All']
+                        startframe, endframe = min(frames), max(frames)
+                        self["_RNA_UI"] = {"Start": {"min":startframe, "max":endframe}, "End": {"min":startframe, "max":endframe}}
+                        self['Start'], self['End'] = startframe, endframe
+                    else:
+                        if 'Month' in zrl[3]:
+                            startday = datetime.datetime(int(innode['year']), int(zrl[4][zrl[3].index('Month')].split()[0]), int(zrl[4][zrl[3].index('Day')].split()[0])).timetuple().tm_yday
+                            endday = datetime.datetime(int(innode['year']), int(zrl[4][zrl[3].index('Month')].split()[-1]), int(zrl[4][zrl[3].index('Day')].split()[-1])).timetuple().tm_yday
+                            self["_RNA_UI"] = {"Start": {"min":startday, "max":endday}, "End": {"min":startday, "max":endday}}
+                            self['Start'], self['End'] = startday, endday
     
                 if self.inputs.get('Y-axis 1'):
                     self.inputs['Y-axis 1'].hide = False
@@ -1863,7 +1867,6 @@ class No_Vi_Metrics(Node, ViNodes):
                     newrow(layout, 'Retail space:', self, "breeam_retailmenu")
                 elif self.breeam_menu == '4':
                     newrow(layout, 'Other space:', self, "breeam_othermenu")
-
 
         newrow(layout, 'Frame', self, "frame_menu")
         newrow(layout, 'Zone', self, "zone_menu")
@@ -2099,7 +2102,7 @@ class No_Vi_Metrics(Node, ViNodes):
                                     df = array([float(p) for p in r[4].split()])
 
                     try:
-                        self['res']['avDF'] = round(sum(df * dfareas)/sum(dfareas), 2)
+                        self['res']['avDF'] = round(nsum(df * dfareas)/nsum(dfareas), 2)
                         tdf = stack((df, dfareas), axis=1)
                         stdf = tdf[tdf[:,0].argsort()][::-1]
                         aDF = stdf[0][0]
@@ -2107,11 +2110,11 @@ class No_Vi_Metrics(Node, ViNodes):
                         i = 1
 
                         while (aDF >= mDF and i < len(df)):
-                            aDF = sum(stdf[0: i + 1, 0] * dfareas[0: i + 1])/sum(dfareas[0: i + 1])
+                            aDF = nsum(stdf[0: i + 1, 0] * dfareas[0: i + 1])/nsum(dfareas[0: i + 1])
                             rarea += stdf[i][1]
                             i += 1
 
-                        self['res']['areaDF'] = round(100 * rarea/sum(dfareas), 2)
+                        self['res']['areaDF'] = round(100 * rarea/nsum(dfareas), 2)
                         self['res']['ratioDF'] = round(min(df)/self['res']['avDF'], 2)
                     except:
                         pass

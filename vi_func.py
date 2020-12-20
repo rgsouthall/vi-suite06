@@ -1924,9 +1924,9 @@ def sunapply(scene, sun, values, solposs, frames):
             st1x.keyframe_points.add(len(frames))
             st1y.keyframe_points.add(len(frames))
             st1z.keyframe_points.add(len(frames))
-        for bnode in bnodes:
-            b1 = scene.world.node_tree.animation_data.action.fcurves.new(data_path='nodes["{}"].inputs[1].default_value'.format(bnode.name))
-            b1.keyframe_points.add(len(frames))
+#        for bnode in bnodes:
+#            b1 = scene.world.node_tree.animation_data.action.fcurves.new(data_path='nodes["{}"].inputs[1].default_value'.format(bnode.name))
+#            b1.keyframe_points.add(len(frames))
 
     for f, frame in enumerate(frames):
         (sun.data.shadow_soft_size, sun.data.energy) = values[f][:2]
@@ -1939,7 +1939,7 @@ def sunapply(scene, sun, values, solposs, frames):
                 st1x.keyframe_points[f].co = frame, skydir[0]
                 st1y.keyframe_points[f].co = frame, skydir[1]
                 st1z.keyframe_points[f].co = frame, skydir[2]
-            b1.keyframe_points[f].co = frame, values[f][2]
+#            b1.keyframe_points[f].co = frame, values[f][2]
 
         if scene.render.engine == 'CYCLES' and sun.data.node_tree:
             for emnode in emnodes:

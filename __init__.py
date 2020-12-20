@@ -152,8 +152,11 @@ def unititems(self, context):
         if svp['liparams']['unit'] == 'W/m2 (f)':
             return [('firradm2', 'W/m2', 'Full spectrum irradiance per metre square'),
                     ('firrad', 'W', 'Full spectrum irradiance')]
-        elif svp['liparams']['unit'] in ('Lux', 'DF'):
+        elif svp['liparams']['unit'] == 'Lux':
             return [('illu', 'Lux', 'Illuminance'), 
+                    ('virrad', 'Watts', 'Visible spectrum illuminance')]
+        elif svp['liparams']['unit'] == 'DF':
+            return [('df', 'DF (%)', 'Daylight factor'), 
                     ('virrad', 'Watts', 'Visible spectrum illuminance')]
         elif svp['liparams']['unit'] == 'lxh':
             return [('illuh', 'Lux-hours', 'Lux-hours'), ('virradh', 'kWh (v)', 'kilo-Watt hours (visible)'), ('virradhm2', 'kWh/m2 (v)', 'kilo-Watt hours per square metre (visible)')]
@@ -224,14 +227,13 @@ def set_frame(self, value):
 def d_update(self, context):
     if not self.vi_display and context.scene.vi_params.get('viparams'):
         dns = bpy.app.driver_namespace
-
-        for d in context.scene.vi_params['viparams'].get('drivers'):
-            if d in dns:
-                try:
+        try:
+            for d in context.scene.vi_params['viparams'].get('drivers'):
+                if d in dns:
                     bpy.types.SpaceView3D.draw_handler_remove(dns[d], 'WINDOW')
                     logentry('Stopping {} display'.format(d))
-                except:
-                    pass
+        except:
+            pass
         context.scene.vi_params['viparams']['drivers'] = []
       
 class VI_Params_Scene(bpy.types.PropertyGroup): 
