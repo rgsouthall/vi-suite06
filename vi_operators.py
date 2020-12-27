@@ -1632,36 +1632,40 @@ class OBJECT_OT_VIGridify2(bpy.types.Operator):
         mesh.faces.ensure_lookup_table()
         mesh.verts.ensure_lookup_table()
         fs = [f for f in mesh.faces[:] if f.select]
-        self.upv = fs[0].calc_tangent_edge().copy().normalized()
-        self.norm = fs[0].normal.copy()
-        self.acv = self.upv.copy()
-        eul = Euler(radians(-90) * self.norm, 'XYZ')
-        self.acv.rotate(eul)
-        self.acv = self.upv.cross(self.norm)
-        rotation = Euler(radians(self.rotate) * self.norm, 'XYZ')
-        self.upv.rotate(rotation)
-        self.acv.rotate(rotation)
-        vertdots = [Vector.dot(self.upv, vert.co) for vert in fs[0].verts]
-        vertdots2 = [Vector.dot(self.acv, vert.co) for vert in fs[0].verts]
-        svpos = fs[0].verts[vertdots.index(min(vertdots))].co
-        svpos2 = fs[0].verts[vertdots2.index(min(vertdots2))].co
-        res1, res2, ngs1, ngs2, gs1, gs2 = 1, 1, self.us, self.acs, self.us, self.acs
-        vs = fs[0].verts[:]
-        es = fs[0].edges[:]        
-        gs = vs + es + fs
-          
-        while res1:
-            res = bmesh.ops.bisect_plane(mesh, geom = gs, dist = 0.001, plane_co = svpos + ngs1 * self.upv, plane_no = self.upv, use_snap_center = 0, clear_outer = 0, clear_inner = 0)
-            res1 = res['geom_cut']
-            gs = mesh.verts[:] + mesh.edges[:] + [v for v in res['geom'] if isinstance(v, bmesh.types.BMFace)]
-            ngs1 += gs1
-    
-        while res2:
-            res = bmesh.ops.bisect_plane(mesh, geom = gs, dist = 0.001, plane_co = svpos2 + ngs2 * self.acv, plane_no = self.acv, use_snap_center = 0, clear_outer = 0, clear_inner = 0)
-            res2 = res['geom_cut']
-            gs = mesh.verts[:] + mesh.edges[:] + [v for v in res['geom'] if isinstance(v, bmesh.types.BMFace)]
-            ngs2 += gs2
-
+        if fs:
+            self.upv = fs[0].calc_tangent_edge().copy().normalized()
+            self.norm = fs[0].normal.copy()
+            self.acv = self.upv.copy()
+            eul = Euler(radians(-90) * self.norm, 'XYZ')
+            self.acv.rotate(eul)
+            self.acv = self.upv.cross(self.norm)
+            rotation = Euler(radians(self.rotate) * self.norm, 'XYZ')
+            self.upv.rotate(rotation)
+            self.acv.rotate(rotation)
+            vertdots = [Vector.dot(self.upv, vert.co) for vert in fs[0].verts]
+            vertdots2 = [Vector.dot(self.acv, vert.co) for vert in fs[0].verts]
+            svpos = fs[0].verts[vertdots.index(min(vertdots))].co
+            svpos2 = fs[0].verts[vertdots2.index(min(vertdots2))].co
+            res1, res2, ngs1, ngs2, gs1, gs2 = 1, 1, self.us, self.acs, self.us, self.acs
+            vs = fs[0].verts[:]
+            es = fs[0].edges[:]        
+            gs = vs + es + fs
+            
+            while res1:
+                res = bmesh.ops.bisect_plane(mesh, geom = gs, dist = 0.001, plane_co = svpos + ngs1 * self.upv, plane_no = self.upv, use_snap_center = 0, clear_outer = 0, clear_inner = 0)
+                res1 = res['geom_cut']
+                gs = mesh.verts[:] + mesh.edges[:] + [v for v in res['geom'] if isinstance(v, bmesh.types.BMFace)]
+                ngs1 += gs1
+        
+            while res2:
+                res = bmesh.ops.bisect_plane(mesh, geom = gs, dist = 0.001, plane_co = svpos2 + ngs2 * self.acv, plane_no = self.acv, use_snap_center = 0, clear_outer = 0, clear_inner = 0)
+                res2 = res['geom_cut']
+                gs = mesh.verts[:] + mesh.edges[:] + [v for v in res['geom'] if isinstance(v, bmesh.types.BMFace)]
+                ngs2 += gs2
+        else:
+            self.report({'ERROR'}, "No face selected")
+            return {'CANCELLED'}
+            
         mesh.transform(self.o.matrix_world.inverted())
         bmesh.update_edit_mesh(self.o.data)
         mesh.free()
