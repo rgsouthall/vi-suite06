@@ -377,7 +377,7 @@ def basiccalcapply(self, scene, frames, rtcmds, simnode, curres, pfile):
             virradres = geom.layers.float['virrad{}'.format(frame)]
             illures = geom.layers.float['illu{}'.format(frame)]
 
-        if svp['liparams']['unit'] == 'DF':
+        elif svp['liparams']['unit'] == 'DF':
             geom.layers.float.new('df{}'.format(frame))
             geom.layers.float.new('virrad{}'.format(frame))
             dfres = geom.layers.float['df{}'.format(frame)]
@@ -490,13 +490,11 @@ def basiccalcapply(self, scene, frames, rtcmds, simnode, curres, pfile):
             self['oave']['virradm2{}'.format(frame)] = aveoirradm2
             self['omin']['illu{}'.format(frame)] = minoirradm2 * 179
             
-
             if self['omax']['illu{}'.format(frame)] > self['omin']['illu{}'.format(frame)]:
                 vals = [(gp[res] - self['omin']['illu{}'.format(frame)])/(self['omax']['illu{}'.format(frame)] - self['omin']['illu{}'.format(frame)]) for gp in geom]
             else:
                 vals = [1 for gp in geom]
                         
-        tableheaders = [["", 'Minimum', 'Average', 'Maximum']]
         posis = [v.co for v in bm.verts if v[cindex] > 0] if svp['liparams']['cp'] == '1' else [f.calc_center_median() for f in bm.faces if f[cindex] > 0]
         bins = array([increment * i for i in range(1, ll)])
         ais = digitize(vals, bins)

@@ -1832,7 +1832,7 @@ def draw_dhscatter(self, x, y, z, tit, xlab, ylab, zlab, valmin, valmax, col):
     self.plt.axis([min(x),max(x),min(y),max(y)])
     self.plt.xticks(size = 16)
     self.plt.yticks(size = 16)
-    self.plt.tight_layout(rect=[0, 0, 1 + ((len(x)/len(y)) - 1) * 0.005, 1])  
+    self.plt.tight_layout(rect=[0, 0, 1 + ((len(x)/len(y)) - 1) * 0.0025, 1])  
     
 def draw_table(self):
     draw_icon(self) 
@@ -2875,7 +2875,7 @@ class VIEW3D_OT_SVFDisplay(bpy.types.Operator):
         svp = scene.vi_params
         redraw = 0
 
-        if svp.vi_display == 0 or svp['viparams']['vidisp'] != 'svf' or event.type == 'ESC' or not context.area:
+        if svp.vi_display == 0 or svp['viparams']['vidisp'] != 'svf' or not context.area:
             svp.vi_display = 0
 
             if context.area:
@@ -3024,6 +3024,8 @@ class VIEW3D_OT_SSDisplay(bpy.types.Operator):
                     if event.type == 'LEFTMOUSE':
                         if event.value == 'RELEASE':
                             window.expand = 0 if window.expand else 1
+                            context.area.tag_redraw()
+                            return {'RUNNING_MODAL'}
                             
                 elif w == 1 and window.expand and window.lspos[0] + 0.1 * window.xdiff < mx < window.lepos[0] - 0.1 * window.xdiff and window.lspos[1] + 0.1 * window.ydiff  < my < window.lepos[1] - 0.1 * window.ydiff:
                     window.hl = (0.8, 0.8, 0.8, 0.8) 
