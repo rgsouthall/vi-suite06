@@ -271,8 +271,11 @@ class No_Li_Con(Node, ViNodes):
         
         self['skynum'] = int(self.skymenu)         
         suns = [ob for ob in scene.objects if ob.type == 'LIGHT' and ob.data.type == 'SUN'] 
-                
-        if self.contextmenu == 'Basic' and ((self.skyprog == '0' and self['skynum'] < 2) or (self.skyprog == '1' and self.epsilon > 1)):
+        
+        if self.contextmenu == 'Basic' and (self.skyprog == '0' and self['skynum'] > 1):            
+            self.animated = 0
+            
+        elif self.contextmenu == 'Basic' and ((self.skyprog == '0' and self['skynum'] < 2) or (self.skyprog == '1' and self.epsilon > 1)):
             starttime = datetime.datetime(2015, 1, 1, int(self.shour), int((self.shour - int(self.shour))*60)) + datetime.timedelta(self.sdoy - 1) if self['skynum'] < 3 else datetime.datetime(2013, 1, 1, 12)                                       
             self['endframe'] = self.startframe + int(((24 * (self.edoy - self.sdoy) + self.ehour - self.shour)/self.interval)) if self.animated else [scene.frame_current]
             frames = range(self.startframe, self['endframe'] + 1) if self.animated else [scene.frame_current]
