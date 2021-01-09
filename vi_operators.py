@@ -1319,7 +1319,7 @@ class NODE_OT_Li_Fc(bpy.types.Operator):
                     temp_file = os.path.join(svp['viparams']['newdir'], 'images', 'temp.hdr')
                     
                     with open(temp_file, 'w') as tfile:
-                        Popen(shlex.split('pcond -e {} {}'.format(fcnode.disp, os.path.abspath(im)).split()), stdout = tfile)
+                        Popen(shlex.split('pcond -e {} {}'.format(fcnode.disp, os.path.abspath(im))), stdout = tfile)
                     
                     poverlay = '-p {}'.format(os.path.join(context.scene['viparams']['newdir'], 'images', 'temp.hdr')) if fcnode.contour and fcnode.overlay else ''
                     fccmd = 'falsecolor -i {} {} -pal {} {} {} {}'.format(os.path.abspath(im), poverlay, fcnode.coldict[fcnode.colour], legend, contour, divisions) 
