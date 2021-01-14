@@ -478,7 +478,7 @@ class NODE_OT_Shadow(bpy.types.Operator):
         curres, reslists = 0, []
         pfile = progressfile(svp['viparams']['newdir'], datetime.datetime.now(), calcsteps)
         kivyrun = progressbar(os.path.join(scene.vi_params['viparams']['newdir'], 'viprogress'), 'Shadow Map')
-        logentry(f'Conducting shadow map calculation with {simnode.interval} samples per hour for {int(len(direcs)/simnode.interval)} total hours and {lvaldirecs} available sun hours')
+        logentry(f'Conducting shadow map calculation over {simnode.edoy - simnode.sdoy + 1} days with {simnode.interval} samples per hour for {int(len(direcs)/simnode.interval)} total hours and {lvaldirecs} available sun hours')
         
         for oi, o in enumerate([scene.objects[on] for on in svp['liparams']['shadc']]):
             ovp = o.vi_params
@@ -947,7 +947,10 @@ class NODE_OT_Li_Pre(bpy.types.Operator, ExportHelper):
  
                 if self.simnode.pmappreview:
                     with open("{0}-{1}pmd.oct".format(svp['viparams']['filebase'], frame), 'wb') as octfile:
-                        occmd = 'oconv -i "{0}-{1}.oct" "!pmapdump {0}-{1}.gpm{2}"'.format(svp['viparams']['filebase'], frame, (' {}-{}.cpm'.format(svp['viparams']['filebase'], frame), '')[not self.simnode.pmapcno])
+                        if sys.platform == 'win32':
+                            occmd = 'oconv -i "{0}-{1}.oct" "!pmapdump {0}-{1}.gpm{2}"'.format(svp['viparams']['filebase'], frame, (' {}-{}.cpm'.format(svp['viparams']['filebase'], frame), '')[not self.simnode.pmapcno])
+                        else:
+                            occmd = "oconv -i '{0}-{1}.oct' '!pmapdump {0}-{1}.gpm{2}'".format(svp['viparams']['filebase'], frame, (' {}-{}.cpm'.format(svp['viparams']['filebase'], frame), '')[not self.simnode.pmapcno])
                         logentry('Running pmapdump: {}'.format(occmd))
                         Popen(shlex.split(occmd), stdout = octfile).wait()
                     rvucmd = 'rvu -w {9} -n {0} -vv {1:.3f} -vh {2:.3f} -vd {3[0]:.3f} {3[1]:.3f} {3[2]:.3f} -vp {4[0]:.3f} {4[1]:.3f} {4[2]:.3f} -vu {8[0]:.3f} {8[1]:.3f} {8[2]:.3f} {5} "{6}-{7}pmd.oct"'.format(svp['viparams']['wnproc'], 
