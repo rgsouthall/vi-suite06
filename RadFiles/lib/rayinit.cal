@@ -100,7 +100,6 @@ frac(x) : x - floor(x);
 mod(n,d) : n - floor(n/d)*d;
 tri(n,d) : abs( d - mod(n-d,2*d) );
 linterp(t,p0,p1) : (1-t)*p0 + t*p1;
-
 noop(v) : v;
 clip(v) : bound(0,v,1);
 noneg(v) : if(v,v,0);
@@ -117,7 +116,7 @@ dot(v1,v2) : v1(1)*v2(1) + v1(2)*v2(2) + v1(3)*v2(3);
 cross(i,v1,v2) : select(i,	v1(2)*v2(3) - v1(3)*v2(2),
 				v1(3)*v2(1) - v1(1)*v2(3),
 				v1(1)*v2(2) - v1(2)*v2(1));
-
+				
 fade(near_val,far_val,dist) : far_val +
 		if (16-dist, (near_val-far_val)/(1+dist*dist), 0);
 

@@ -80,7 +80,7 @@ class WindroseAxes(PolarAxes):
 
     def legend(self, loc='lower left', **kwargs):
         """
-        Sets the legend location and her properties.
+        Sets the legend location and her properties.required
         The location codes are
 
           'best'         : 0,

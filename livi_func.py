@@ -19,7 +19,7 @@
 import bpy, bmesh, os, datetime, shlex, sys, math, pickle
 from mathutils import Vector
 from subprocess import Popen, PIPE, STDOUT
-from numpy import array, where, in1d, transpose, savetxt, int8, float16, float32, float64, digitize, zeros, choose, inner, average, amax, amin
+from numpy import array, where, in1d, transpose, savetxt, int8, float16, float32, float64, digitize, zeros, choose, inner, average, amax, amin, concatenate
 from numpy import sum as nsum
 from numpy import max as nmax
 from numpy import min as nmin
@@ -584,11 +584,10 @@ def lhcalcapply(self, scene, frames, rtcmds, simnode, curres, pfile):
     
     for f, frame in enumerate(frames): 
         geom.layers.float.new('res{}'.format(frame))
-        if simnode['coptions']['unit'] == 'lxh':
-            geom.layers.float.new('virradhm2{}'.format(frame))        
+
+        if simnode['coptions']['unit'] == 'klxh':       
             geom.layers.float.new('virradh{}'.format(frame))
             geom.layers.float.new('illuh{}'.format(frame))
-            virradm2res = geom.layers.float['virradhm2{}'.format(frame)]
             virradres = geom.layers.float['virradh{}'.format(frame)]
             illures = geom.layers.float['illuh{}'.format(frame)]
         elif simnode['coptions']['unit'] == 'kWh (f)':
@@ -612,17 +611,15 @@ def lhcalcapply(self, scene, frames, rtcmds, simnode, curres, pfile):
             rtrun = Popen(shlex.split(rtcmds[f]), stdin = PIPE, stdout=PIPE, stderr=PIPE, universal_newlines=True).communicate(input = '\n'.join([c[rt].decode('utf-8') for c in chunk]))  
             xyzirrad = array([[float(v) for v in sl.split('\t')[:3]] for sl in rtrun[0].splitlines()])
 
-            if simnode['coptions']['unit'] == 'lxh':
-                virradm2 = nsum(xyzirrad * array([0.333, 0.333, 0.333]), axis = 1) * 1e-3
-                virrad = virradm2 * careas
-                illu = nsum(xyzirrad * array([0.26, 0.67, 0.065]), axis = 1) * 179
+            if simnode['coptions']['unit'] == 'klxh':
+                illu = nsum(xyzirrad * array([0.26, 0.67, 0.065]), axis = 1) * 179/1000
+                virrad = nsum(xyzirrad * array([0.333, 0.333, 0.333]), axis = 1) * 1e-3 * careas
             elif simnode['coptions']['unit'] == 'kWh (f)':
                 firradm2 = nsum(xyzirrad * array([0.333, 0.333, 0.333]), axis = 1) * 1e-3
                 firrad = firradm2 * careas
             
             for gi, gp in enumerate(chunk):
-                if simnode['coptions']['unit'] == 'lxh':
-                    gp[virradm2res] = virradm2[gi].astype(float32)
+                if simnode['coptions']['unit'] == 'klxh':
                     gp[virradres] = virrad[gi].astype(float32)
                     gp[illures] = illu[gi].astype(float32)
                 elif simnode['coptions']['unit'] == 'kWh (f)':
@@ -635,24 +632,24 @@ def lhcalcapply(self, scene, frames, rtcmds, simnode, curres, pfile):
                 bm.free()
                 return {'CANCELLED'}
             
-        if simnode['coptions']['unit'] == 'lxh':        
-            ovirradm2 = array([g[virradm2res] for g in gps])
+        if simnode['coptions']['unit'] == 'klxh':   
+            oillu = array([g[illures] for g in gps])     
             ovirrad = array([g[virradres] for g in gps])
-            maxovirradm2 = nmax(ovirradm2)
+            maxoillu = nmax(oillu)
             maxovirrad = nmax(ovirrad)
-            minovirradm2 = nmin(ovirradm2)
+            minoillu = nmin(oillu)
             minovirrad = nmin(ovirrad)
-            aveovirradm2 = nmean(ovirradm2)
+            aveoillu = nmean(oillu)
             aveovirrad = nmean(ovirrad)
             self['omax']['virradh{}'.format(frame)] = maxovirrad
             self['omin']['virradh{}'.format(frame)] = minovirrad
             self['oave']['virradh{}'.format(frame)] = aveovirrad
-            self['omax']['virradhm2{}'.format(frame)] = maxovirradm2
-            self['omin']['virradhm2{}'.format(frame)] = minovirradm2
-            self['oave']['virradhm2{}'.format(frame)] = aveovirradm2
-            self['omax']['illuh{}'.format(frame)] = maxovirradm2 * 179
-            self['omin']['illuh{}'.format(frame)] = minovirradm2 * 179
-            self['oave']['illuh{}'.format(frame)] = aveovirradm2 * 179
+            self['omax']['virradhm2{}'.format(frame)] = maxoillu/179
+            self['omin']['virradhm2{}'.format(frame)] = minoillu/179
+            self['oave']['virradhm2{}'.format(frame)] = aveoillu/179
+            self['omax']['illuh{}'.format(frame)] = maxoillu
+            self['omin']['illuh{}'.format(frame)] = minoillu
+            self['oave']['illuh{}'.format(frame)] = aveoillu
             self['tablemlxh{}'.format(frame)] = array([["", 'Minimum', 'Average', 'Maximum'], 
                  ['Luxhours (Mlxh)', '{:.1f}'.format(self['omin']['illuh{}'.format(frame)]), '{:.1f}'.format(self['oave']['illuh{}'.format(frame)]), '{:.1f}'.format(self['omax']['illuh{}'.format(frame)])]])
             self['tablevim2{}'.format(frame)] = array([["", 'Minimum', 'Average', 'Maximum'], 
@@ -686,11 +683,12 @@ def lhcalcapply(self, scene, frames, rtcmds, simnode, curres, pfile):
         reslists.append([str(frame), 'Zone', self.id_data.name, 'Z', ' '.join([str(p[0]) for p in posis])])
         reslists.append([str(frame), 'Zone', self.id_data.name, 'Area', ' '.join([str(a) for a in areas])])
         
-        if simnode['coptions']['unit'] == 'lxh':
+        if simnode['coptions']['unit'] == 'klxh':
             reslists.append([str(frame), 'Zone', self.id_data.name, 'Visible irradiance', ' '.join([str(g[virradres]) for g in geom if g[cindex] > 0])])
             reslists.append([str(frame), 'Zone', self.id_data.name, 'Illuminance (Mlxh)', ' '.join([str(g[illures]) for g in geom if g[cindex] > 0])])
         elif simnode['coptions']['unit'] == 'kWh (f)':    
             reslists.append([str(frame), 'Zone', self.id_data.name, 'Full irradiance', ' '.join([str(g[firradres]) for g in geom if g[cindex] > 0])])
+
     bm.to_mesh(self.id_data.data)
     bm.free()
     return reslists
@@ -993,16 +991,20 @@ def udidacalcapply(self, scene, frames, rccmds, simnode, curres, pfile):
                 wattarray  = nsum(resarray*wattmod, axis = 2).astype(float32)
                 firradm2array = inner(wattarray, vecvals).astype(float32)
                 firradarray = (firradm2array.T * chareas).T.astype(float32)
-                
+                kwh = 0.001 * nsum(firradarray, axis = 1)
+                kwhm2 = 0.001 * nsum(firradm2array, axis = 1)
+
                 if not ch:
                     totfinalwatt = nsum(firradarray, axis = 0)#nsum(inner(sensarray, vecvals), axis = 0)
                     totfinalwattm2 = average(firradm2array, axis = 0) 
-                    kwh = 0.001 * nsum(firradarray, axis = 1)
-                    kwhm2 = 0.001 * nsum(firradm2array, axis = 1)
+                    finalkwh = kwh
+                    finalkwhm2 = kwhm2
                 else:
                     totfinalwatt += nsum(firradarray, axis = 0)#nsum(inner(sensarray, vecvals), axis = 0)
                     totfinalwattm2 += average(firradm2array, axis = 0)
-                
+                    finalkwh = concatenate((finalkwh, kwh))
+                    finalkwhm2 = concatenate((finalkwhm2, kwhm2))
+
                 for gi, gp in enumerate(chunk):
                     gp[firrad] = kwh[gi]
                     gp[firradm2] = kwhm2[gi]
@@ -1122,12 +1124,12 @@ def udidacalcapply(self, scene, frames, rccmds, simnode, curres, pfile):
                 return {'CANCELLED'}
 
         if svp['viparams']['visimcontext'] == 'LiVi CBDM' and simnode['coptions']['cbanalysis'] == '1':
-            self['omax']['firradh{}'.format(frame)] = nmax(kwh).astype(float64)
-            self['omin']['firradh{}'.format(frame)] = nmin(kwh).astype(float64)
-            self['oave']['firradh{}'.format(frame)] = nmean(kwh).astype(float64)
-            self['omax']['firradhm2{}'.format(frame)] = nmax(kwhm2).astype(float64)
-            self['omin']['firradhm2{}'.format(frame)] = nmin(kwhm2).astype(float64)
-            self['oave']['firradhm2{}'.format(frame)] = nmean(kwhm2).astype(float64)
+            self['omax']['firradh{}'.format(frame)] = nmax(finalkwh).astype(float64)
+            self['omin']['firradh{}'.format(frame)] = nmin(finalkwh).astype(float64)
+            self['oave']['firradh{}'.format(frame)] = nmean(finalkwh).astype(float64)
+            self['omax']['firradhm2{}'.format(frame)] = nmax(finalkwhm2).astype(float64)
+            self['omin']['firradhm2{}'.format(frame)] = nmin(finalkwhm2).astype(float64)
+            self['oave']['firradhm2{}'.format(frame)] = nmean(finalkwhm2).astype(float64)
             self['livires']['firradh{}'.format(frame)] =  (0.001*totfinalwatt).reshape(dno, hno).transpose().tolist()
             self['livires']['firradhm2{}'.format(frame)] =  (0.001*totfinalwattm2).reshape(dno, hno).transpose().tolist()            
             # self['tablekwh{}'.format(frame)] = array([["", 'Minimum', 'Average', 'Maximum'], 

@@ -243,9 +243,10 @@ def li_display(disp_op, simnode):
     
     for i, o in enumerate([scene.objects[oname] for oname in svp['liparams']['{}c'.format(mtype)]]):        
         bm = bmesh.new()
-        bm.from_object(o, dp)
+#        bm.from_object(o, dp)
 #            tempmesh = ob.evaluated_get(dp).to_mesh()
-#            bm.from_mesh(tempmesh)
+        bm.from_mesh(o.to_mesh())
+        o.to_mesh_clear()
 #        bm.transform(o.matrix_world)
 #        bm.normal_update() 
         ovp = o.vi_params
@@ -268,7 +269,8 @@ def li_display(disp_op, simnode):
         
         for v in bm.verts:
             v.co += mathutils.Vector((nsum([f.normal for f in v.link_faces], axis = 0))).normalized()  * simnode['goptions']['offset']
-        
+
+#        bm.free()
         selobj(bpy.context.view_layer, o)
         bpy.ops.object.duplicate() 
         
@@ -335,6 +337,7 @@ class linumdisplay():
     def __init__(self, disp_op, context):
         scene = context.scene 
         svp = scene.vi_params
+        svp.li_disp_menu = unit2res[svp['liparams']['unit']]
         self.fn = scene.frame_current - svp['liparams']['fs']
         self.level = svp.vi_disp_3dlevel
         self.disp_op = disp_op
@@ -355,12 +358,12 @@ class linumdisplay():
         objmode()
         self.update(context)
         
-    def draw(self, context):        
+    def draw(self, context):              
         self.u = 0
         scene = context.scene
         svp = scene.vi_params
         self.fontmult = 2 #if context.space_data.region_3d.is_perspective else 500
-        
+         
         if not svp.get('viparams') or svp['viparams']['vidisp'] not in ('svf', 'li', 'ss', 'lcpanel'):
             svp.vi_display = 0
             return
@@ -398,21 +401,20 @@ class linumdisplay():
         if self.level != svp.vi_disp_3dlevel:
             self.level = svp.vi_disp_3dlevel
             self.u = 1
-
+        
         blf_props(scene, self.width, self.height)
 
         if self.u:            
             self.update(context)
-        else:    
+        else:   
             draw_index_distance(self.allpcs, self.allres, self.fontmult * svp.vi_display_rp_fs, svp.vi_display_rp_fc, svp.vi_display_rp_fsh, self.alldepths)    
         
         if svp.vi_display_rp_fs != self.fs:
             self.fs = svp.vi_display_rp_fs
-#            bpy.context.user_preferences.system.window_draw_method = bpy.context.user_preferences.system.window_draw_method
-           
+            bpy.context.user_preferences.system.window_draw_method = bpy.context.user_preferences.system.window_draw_method
+ 
     def update(self, context):
         scene = context.scene
-        
         vl = context.view_layer
         svp = scene.vi_params
         self.allpcs, self.alldepths, self.allres = array([]), array([]), array([])
@@ -420,18 +422,18 @@ class linumdisplay():
         for ob in self.obd:
             if ob.data.get('shape_keys') and str(self.fn) in [sk.name for sk in ob.data.shape_keys.key_blocks] and ob.active_shape_key.name != str(self.fn):
                 ob.active_shape_key_index = [sk.name for sk in ob.data.shape_keys.key_blocks].index(str(self.fn))
-        dp = context.evaluated_depsgraph_get()
+        
+        dp = context.evaluated_depsgraph_get()        
+        var = svp.li_disp_menu
         
         for ob in self.obd:
             res = []
             bm = bmesh.new()
+            # bm.from_mesh(ob.to_mesh())
+            # ob.to_mesh_clear()
             bm.from_object(ob, dp)
-#            tempmesh = ob.evaluated_get(dp).to_mesh()
-#            bm.from_mesh(tempmesh)
             bm.transform(ob.matrix_world)
-            bm.normal_update() 
-#            ob.to_mesh_clear()
-            var = svp.li_disp_menu
+            bm.normal_update()             
             geom = bm.faces if bm.faces.layers.float.get('{}{}'.format(var, scene.frame_current)) else bm.verts
             geom.ensure_lookup_table()
             livires = geom.layers.float['{}{}'.format(var, scene.frame_current)]
@@ -464,7 +466,7 @@ class linumdisplay():
 
                     res = [f[livires] for f in faces] 
                     res = ret_res_vals(svp, res)
-            
+                            
             elif bm.verts.layers.float.get('{}{}'.format(var, scene.frame_current)):                        
                 verts = [v for v in geom if not v.hide and v.select and (context.space_data.region_3d.view_location - self.view_location).dot(v.co + svp.vi_display_rp_off * v.normal.normalized() - self.view_location)/((context.space_data.region_3d.view_location-self.view_location).length * (v.co + svp.vi_display_rp_off * v.normal.normalized() - self.view_location).length) > 0]
                 distances = [(self.view_location - v.co + svp.vi_display_rp_off * v.normal.normalized()).length for v in verts]
@@ -1571,7 +1573,10 @@ class draw_legend(Base_Display):
             self.cols = retcols(mcm.get_cmap(svp.vi_leg_col), self.levels)
             (self.minres, self.maxres) = leg_min_max(svp)
             self.col, self.scale = svp.vi_leg_col, svp.vi_leg_scale
-            self.unit = res2unit[svp.li_disp_menu] if not svp.vi_leg_unit else svp.vi_leg_unit
+            try:
+                self.unit = res2unit[svp.li_disp_menu] if not svp.vi_leg_unit else svp.vi_leg_unit
+            except:
+                self.unit = res2unit[svp['liparams']['unit']] if not svp.vi_leg_unit else svp.vi_leg_unit
             self.cols = retcols(mcm.get_cmap(svp.vi_leg_col), self.levels)
             resdiff = self.maxres - self.minres
             

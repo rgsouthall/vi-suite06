@@ -518,7 +518,8 @@ def lividisplay(self, scene):
     
         for f, frame in enumerate(frames):  
             bm = bmesh.new()
-            bm.from_mesh(self.id_data.data)
+            bm.from_mesh(self.id_data.to_mesh())
+            self.id_data.to_mesh_clear()
             geom = bm.verts if svp['liparams']['cp'] == '1' else bm.faces  
             sf = str(frame)
 

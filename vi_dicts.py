@@ -8,8 +8,8 @@ rvuparams = {"-ab": (2, 3, 4), "-ad": (256, 1024, 4096), "-as": (128, 512, 2048)
                    "-ds": (0.5, 0.15, 0.15), "-dr": (1, 3, 5), "-ss": (0, 2, 5), "-st": (1, 0.75, 0.1), "-lw": (0.0001, 0.00001, 0.0000002), 
                    "-lr": (3, 3, 4), "-ps": (16, 4, 1)}
 
-unit2res = {'Lux': 'illu', 'DF': 'df', 'W/m2 (v)': 'virradm2', 'W/m2 (f)': 'firradm2', 'W (f)': 'firrad', 'W (v)': 'virrad', 'SVF': 'svf', 'sDA (%)': 'sda', 'ASE (hrs)': 'ase',
-             'lxh': 'illuh','kWh (f)': 'firradh', 'kWh/m2 (f)': 'firradhm2', 'kWh (v)': 'virradh', 'kWh/m2 (v)': 'virradhm2', 'DA (%)': 'da', 
+unit2res = {'Lux': 'illu', 'DF': 'df', 'W/m2 (v)': 'virradm2', 'W/m2 (f)': 'firradm2', 'W (f)': 'firrad', 'W (v)': 'virrad', 'SVF (%)': 'svf', 'sDA (%)': 'sda', 'ASE (hrs)': 'ase',
+             'klxh': 'illuh','kWh (f)': 'firradh', 'kWh/m2 (f)': 'firradhm2', 'kWh (v)': 'virradh', 'kWh/m2 (v)': 'virradhm2', 'DA (%)': 'da', 
              'UDI-f (%)': 'udilow', 'UDI-s (%)': 'udisup', 'Sunlit time (%)': 'sm',
              'UDI-a (%)': 'udiauto', 'UDI-e (%)': 'udihi', 'kWh': 'kwh', 'kWh/m2': 'kwhm2', 'Lux (max)': 'maxlux', 'Lux (min)': 'minlux', 'Lux (ave)': 'avelux'}
 

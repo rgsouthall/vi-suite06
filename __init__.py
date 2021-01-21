@@ -158,8 +158,8 @@ def unititems(self, context):
         elif svp['liparams']['unit'] == 'DF':
             return [('df', 'DF (%)', 'Daylight factor'), 
                     ('virrad', 'Watts', 'Visible spectrum illuminance')]
-        elif svp['liparams']['unit'] == 'lxh':
-            return [('illuh', 'Lux-hours', 'Lux-hours'), ('virradh', 'kWh (v)', 'kilo-Watt hours (visible)'), ('virradhm2', 'kWh/m2 (v)', 'kilo-Watt hours per square metre (visible)')]
+        elif svp['liparams']['unit'] == 'klxh':
+            return [('illuh', 'klux-hours', 'kilo Lux-hours'), ('virradh', 'kWh (v)', 'kilo-Watt hours (visible)')]
         elif svp['liparams']['unit'] == 'kWh (f)':
             return [('firradh', 'kWh (f)', 'kilo-Watt hours (solar spectrum)'), 
                     ('firradhm2', 'kWh/m2 (f)', 'kilo-Watt hours per square metre (solar spectrum)')]
@@ -174,8 +174,8 @@ def unititems(self, context):
                    ("maxlux", "Lux level (max)", "Maximum lux level"), 
                    ("avelux", "Lux level (ave)", "Average lux level"), 
                    ("minlux", "Lux level (min)", "Minimum lux level")]
-        elif svp['liparams']['unit'] == '% Sunlit':
-            return [('sm', '% Sunlit', '% of time sunlit')]
+        elif svp['liparams']['unit'] == 'Sunlit time (%)':
+            return [('sm', 'Sunlit time (%)', '% of time sunlit')]
         elif svp['liparams']['unit'] == 'SVF (%)':
             return [('svf', 'SVF (%)', '% of sky visible')]
         else:
@@ -262,7 +262,7 @@ class VI_Params_Scene(bpy.types.PropertyGroup):
     sp_globe_colour: fvprop(4, "",'Sun colour', [0.0, 0.0, 1.0, 0.1], 'COLOR', 0, 1)
     sp_sun_angle: FloatProperty(name = "", description = "Sun size", min = 0, max = 1, default = 0.01, update=sunpath1)
     sp_sun_size: iprop("",'Sun size', 1, 50, 10)
-    sp_sun_strength: FloatProperty(name = "", description = "Sun strength", min = 0, max = 100, default = 0.1, update=sunpath1)
+    sp_sun_strength: FloatProperty(name = "", description = "Sun strength", min = 0, max = 100, default = 3.0, update=sunpath1)
     sp_season_dash_ratio: fprop("", "Ratio of line to dash of season lines", 0, 5, 0)
     sp_hour_dash_ratio: fprop("", "Ratio of line to dash of hour lines", -1, 1, 0.5)
     sp_hour_dash_density: fprop("", "Ratio of line to dash of hour lines", 0, 5, 1)
@@ -284,7 +284,7 @@ class VI_Params_Scene(bpy.types.PropertyGroup):
     sp_up: bprop("", "",0)
     sp_td: bprop("", "",0)
     li_disp_panel: iprop("Display Panel", "Shows the Display Panel", -1, 2, 0)
-    li_disp_menu: EnumProperty(items = unititems, name = "", description = "BLiVi metric selection", update = livires_update)  
+    li_disp_menu: EnumProperty(items = unititems, name = "", description = "LiVi metric selection", update = livires_update)  
     vi_display_rp_fsh: fvprop(4, "", "Font shadow", [0.0, 0.0, 0.0, 1.0], 'COLOR', 0, 1)
     vi_display_rp_fs: iprop("", "Point result font size", 4, 24, 24)
     vi_display_rp_fc: fvprop(4, "", "Font colour", [0.0, 0.0, 0.0, 1.0], 'COLOR', 0, 1)
@@ -435,7 +435,7 @@ class VI_Params_Material(bpy.types.PropertyGroup):
     radtranspec: fprop("Trans spec", "Material specular transmission", 0, 1, 0.1)
     radior: fprop("IOR", "Material index of refractionn", 0, 5, 1.5)
     radct: iprop("Temperature (K)", "Colour temperature in Kelven", 0, 12000, 4700)
-    radintensity: fprop("Intensity", u"Material radiance (W/sr/m\u00b2)", 0, 100, 1)   
+    radintensity: fprop("Intensity", u"Material radiance (W/sr/m\u00b2)", 0, 10000, 1)   
     radfile: sprop("", "Radiance file material description", 1024, "")
     vi_shadow: bprop("VI Shadow", "Flag to signify whether the material represents a VI Shadow sensing surface", False)
     livi_sense: bprop("LiVi Sensor", "Flag to signify whether the material represents a LiVi sensing surface", False)
@@ -557,7 +557,14 @@ def display_off(dummy):
             bpy.context.scene.vi_params['viparams']['vidisp'] = ifdict[bpy.context.scene.vi_params['viparams']['vidisp']]
         
         bpy.context.scene.vi_params.vi_display = 0
-                    
+
+@persistent
+def display_off_load(dummy):
+    if bpy.context.scene.vi_params.get('vi_display'):
+        bpy.context.scene.vi_params.vi_display = 0
+
+bpy.app.handlers.load_post.append(display_off_load)
+
 @persistent
 def select_nodetree(dummy): 
     for space in getViEditorSpaces():

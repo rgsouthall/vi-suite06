@@ -79,7 +79,7 @@ class VI_PT_3D(bpy.types.Panel):
                 row = layout.row()
                 row.label(text = 'Scatter properties:')
                 newrow(layout, 'Wind metric:', svp, 'wind_type')
-                newrow(layout, 'Colour:', svp, 'vi_scatt_col')
+                newrow(layout, 'Scatter colour:', svp, 'vi_scatt_col')
                 newrow(layout, 'Max:', svp, 'vi_scatt_max')
 
                 if svp.vi_scatt_max == '1':

@@ -73,6 +73,7 @@ class No_Loc(Node, ViNodes):
         svp = scene.vi_params
         nodecolour(self, self.ready())
         reslists = []
+        self['year'] = 2015
 
         if self.loc == '1':
             entries = []
@@ -119,6 +120,8 @@ class No_Loc(Node, ViNodes):
 
         for node in [l.to_node for l in self.outputs['Location out'].links]:
             node.update()
+
+        nodecolour(self, self['year'] == 2016)
                 
     def retentries(self, context):
         try:
@@ -157,12 +160,17 @@ class No_Loc(Node, ViNodes):
         else:
             newrow(layout, 'Latitude', context.scene.vi_params, "latitude")
             newrow(layout, 'Longitude', context.scene.vi_params, "longitude")
-            
+        if self['year'] == 2016:
+            row = layout.row()
+            row.label(text = 'Leap year file not supported')
+
     def ready(self):
         if self.loc == '1' and not self.weather:
             return 1
         if any([link.to_node.bl_label in ('LiVi CBDM', 'EnVi Export') and self.loc != "1" for link in self.outputs['Location out'].links]):
             return 1
+        if self['year'] == 2016:
+            return 0
         return 0
 
 class No_ASC_Import(Node, ViNodes):
@@ -256,7 +264,7 @@ class No_Li_Con(Node, ViNodes):
     
     def ret_params(self):
         return [str(x) for x in (self.contextmenu, self.spectrummenu, self.canalysismenu, self.cbanalysismenu, 
-                   self.animated, self.skymenu, self.shour, self.sdoy, self.startmonth, self.endmonth, self.damin, self.dasupp, self.dalux, self.daauto,
+                   self.animated, self.skymenu, self.gref, self.shour, self.sdoy, self.startmonth, self.endmonth, self.damin, self.dasupp, self.dalux, self.daauto,
                    self.ehour, self.edoy, self.interval, self.hdr, self.hdrname, self.skyname, self.resname, self.turb, self.mtxname, self.cbdm_start_hour,
                    self.cbdm_end_hour, self.bambuildmenu, self.leed4, self.colour, self.cbdm_res, self.ay)]
 
@@ -642,7 +650,7 @@ class No_Li_Con(Node, ViNodes):
         typedict = {'Basic': '0', 'Compliance': self.canalysismenu, 'CBDM': self.cbanalysismenu}
         # ('Lux', 'DF') below to store DF values in the object
         unitdict = {'Basic': (("Lux", "DF")[self.skyprog == '0' and self.skymenu == '3'], 'W/m2 (f)')[self.skyprog == '1' and self.spectrummenu =='1'], 
-                    'CBDM': (('lxh', 'kWh (f)')[int(self.spectrummenu)], 'kWh (f)', 'DA (%)')[int(self.cbanalysismenu)]}
+                    'CBDM': (('klxh', 'kWh (f)')[int(self.spectrummenu)], 'kWh (f)', 'DA (%)')[int(self.cbanalysismenu)]}
         btypedict = {'0': self.bambuildmenu, '1': '', '2': self.bambuildmenu, '3': self.lebuildmenu}
         self['Options'] = {'Context': self.contextmenu, 'Preview': self['preview'], 'Type': typedict[self.contextmenu], 
             'fs': self.startframe, 'fe': self['endframe'], 'anim': self.animated, 'shour': self.shour, 
@@ -1109,7 +1117,7 @@ class No_Vi_WR(Node, ViNodes):
             newrow(layout, 'Type:', self, "wrtype")
             newrow(layout, 'Start day {}/{}:'.format(sdate.day, sdate.month), self, "sdoy")
             newrow(layout, 'End day {}/{}:'.format(edate.day, edate.month), self, "edoy")
-            newrow(layout, 'Colour:', context.scene.vi_params, 'vi_scatt_col')
+            newrow(layout, 'Colour:', context.scene.vi_params, 'vi_leg_col')
             newrow(layout, 'Max frequency:', self, 'max_freq')
             if self.max_freq == '1':
                newrow(layout, 'Frequency:', self, 'max_freq_val') 
@@ -1498,10 +1506,10 @@ class No_En_IF(Node, ViNodes):
                     break
             nodecolour(self, 0)
 
-    idfname = StringProperty(name="", description="Name of the EnVi results file", default="", update=nodeupdate)
-    sdoy = IntProperty(name = '', default = 1, min = 1, max = 365)
-    edoy = IntProperty(name = '', default = 365, min = 1, max = 365)
-    newdir = StringProperty()
+    idfname: StringProperty(name="", description="Name of the EnVi results file", default="", update=nodeupdate)
+    sdoy: IntProperty(name = '', default = 1, min = 1, max = 365)
+    edoy: IntProperty(name = '', default = 365, min = 1, max = 365)
+    newdir: StringProperty()
 
     def init(self, context):
         self.inputs.new('ViLoc', 'Location in')
@@ -1535,9 +1543,10 @@ class No_En_RF(Node, ViNodes):
         nodecolour(self, self['exportstate'] != [self.resfilename])
         self['frames'] = [context.scene.frame_current]
         
-    esoname = StringProperty(name="", description="Name of the EnVi results file", default="", update=nodeupdate)
-    filebase = StringProperty(name="", description="Name of the EnVi results file", default="")
-    dsdoy, dedoy = IntProperty(), IntProperty()
+    esoname: StringProperty(name="", description="Name of the EnVi results file", default="", update=nodeupdate)
+    filebase: StringProperty(name="", description="Name of the EnVi results file", default="")
+    dsdoy: IntProperty() 
+    dedoy: IntProperty()
     
     def init(self, context):
         self['nodeid'] = nodeid(self)
@@ -2366,12 +2375,15 @@ class So_En_Res(NodeSocket):
             else:
                 row.prop(self, "rtypemenu", text = text)
 
-            for rtype in typedict[self.rtypemenu]:
-                row.prop(self, rtype)
-            if self.node.timemenu in ('1', '2') and self.rtypemenu !='Time' and node.parametricmenu == '0':
-                row.prop(self, "statmenu")
-            if self.rtypemenu != 'Time':
-                row.prop(self, 'multfactor')
+            try:
+                for rtype in typedict[self.rtypemenu]:
+                    row.prop(self, rtype)
+                if self.node.timemenu in ('1', '2') and self.rtypemenu !='Time' and node.parametricmenu == '0':
+                    row.prop(self, "statmenu")
+                if self.rtypemenu != 'Time':
+                    row.prop(self, 'multfactor')
+            except:
+                pass
         else:
             row.label(text = 'No results')
 
@@ -4006,7 +4018,18 @@ class No_En_Net_Ext(Node, EnViNodes):
     bl_icon = 'FORCE_WIND'
 
     height: FloatProperty(default = 1.0)
-    (wpc1, wpc2, wpc3, wpc4, wpc5, wpc6, wpc7, wpc8, wpc9, wpc10, wpc11, wpc12) = [FloatProperty(name = '', default = 0, min = -1, max = 1) for x in range(12)]
+    wpc1: FloatProperty(name = '', default = 0, min = -1, max = 1)
+    wpc2: FloatProperty(name = '', default = 0, min = -1, max = 1)
+    wpc3: FloatProperty(name = '', default = 0, min = -1, max = 1)
+    wpc4: FloatProperty(name = '', default = 0, min = -1, max = 1)
+    wpc5: FloatProperty(name = '', default = 0, min = -1, max = 1)
+    wpc6: FloatProperty(name = '', default = 0, min = -1, max = 1)
+    wpc7: FloatProperty(name = '', default = 0, min = -1, max = 1)
+    wpc8: FloatProperty(name = '', default = 0, min = -1, max = 1)
+    wpc9: FloatProperty(name = '', default = 0, min = -1, max = 1)
+    wpc10: FloatProperty(name = '', default = 0, min = -1, max = 1)
+    wpc11: FloatProperty(name = '', default = 0, min = -1, max = 1)
+    wpc12: FloatProperty(name = '', default = 0, min = -1, max = 1)
     enname: StringProperty()
 
     def init(self, context):
@@ -4250,7 +4273,18 @@ class No_En_Net_WPC(Node, EnViNodes):
     bl_label = 'EnVi WPC'
     bl_icon = 'FORCE_WIND'
 
-    (ang1, ang2, ang3, ang4, ang5, ang6, ang7, ang8, ang9, ang10, ang11, ang12) = [IntProperty(name = '', default = 0, min = 0, max = 360) for x in range(12)]
+    ang1: IntProperty(name = '', default = 0, min = 0, max = 360) 
+    ang2: IntProperty(name = '', default = 0, min = 0, max = 360) 
+    ang3: IntProperty(name = '', default = 0, min = 0, max = 360) 
+    ang4: IntProperty(name = '', default = 0, min = 0, max = 360) 
+    ang5: IntProperty(name = '', default = 0, min = 0, max = 360) 
+    ang6: IntProperty(name = '', default = 0, min = 0, max = 360) 
+    ang7: IntProperty(name = '', default = 0, min = 0, max = 360) 
+    ang8: IntProperty(name = '', default = 0, min = 0, max = 360) 
+    ang9: IntProperty(name = '', default = 0, min = 0, max = 360) 
+    ang10: IntProperty(name = '', default = 0, min = 0, max = 360) 
+    ang11: IntProperty(name = '', default = 0, min = 0, max = 360) 
+    ang12: IntProperty(name = '', default = 0, min = 0, max = 360)
 
     def init(self, context):
         self.outputs.new('So_En_Net_WPC', 'WPC values')

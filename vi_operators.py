@@ -450,7 +450,7 @@ class NODE_OT_Shadow(bpy.types.Operator):
         if not svp.get('liparams'):
            svp['liparams'] = {}
 
-        svp['liparams']['cp'], svp['liparams']['unit'], svp['liparams']['type'] = simnode.cpoint, '% Sunlit', 'VI Shadow'
+        svp['liparams']['cp'], svp['liparams']['unit'], svp['liparams']['type'] = simnode.cpoint, 'Sunlit time (%)', 'VI Shadow'
         simnode.preexport()
         (svp['liparams']['fs'], svp['liparams']['fe']) = (scene.frame_current, scene.frame_current) if simnode.animmenu == 'Static' else (simnode.startframe, simnode.endframe)
         cmap(svp)
@@ -468,6 +468,7 @@ class NODE_OT_Shadow(bpy.types.Operator):
         endtime = datetime.datetime(y, simnode.edate.month, simnode.edate.day, simnode.endhour - 1)
         interval = datetime.timedelta(hours = 1/simnode.interval)        
         times = [time + interval*t for t in range(int((endtime - time)/interval) + simnode.interval) if simnode.starthour - 1 <= (time + interval*t).hour <= simnode.endhour  - 1]
+        print(time, endtime, len(times))
         sps = [solarPosition(t.timetuple().tm_yday, t.hour+t.minute/60, svp.latitude, svp.longitude)[2:] for t in times]
         valmask = array([sp[0] > 0 for sp in sps], dtype = int8)
         direcs = [mathutils.Vector((-sin(sp[1]), -cos(sp[1]), tan(sp[0]))) for sp in sps]  
@@ -893,8 +894,10 @@ class NODE_OT_Li_Pre(bpy.types.Operator, ExportHelper):
         svp['liparams']['fe'] = max([c['fe'] for c in (self.simnode['goptions'], self.simnode['coptions'])])
 
         if frame not in range(svp['liparams']['fs'], svp['liparams']['fe'] + 1):
-            self.report({'ERROR'}, "Current frame is not within the exported frame range")
-            return {'CANCELLED'}
+            frame = svp['liparams']['fe'] if frame > svp['liparams']['fe'] else frame
+            frame = svp['liparams']['fs'] if frame < svp['liparams']['fs'] else frame
+            self.report({'WARNING'}, "Current frame is not within the exported frame range and has been adjusted")
+#            return {'CANCELLED'}
             
         cam = bpy.data.objects[self.simnode.camera.lstrip()]
         
@@ -954,15 +957,15 @@ class NODE_OT_Li_Pre(bpy.types.Operator, ExportHelper):
                         logentry('Running pmapdump: {}'.format(occmd))
                         Popen(shlex.split(occmd), stdout = octfile).wait()
                     rvucmd = 'rvu -w {9} -n {0} -vv {1:.3f} -vh {2:.3f} -vd {3[0]:.3f} {3[1]:.3f} {3[2]:.3f} -vp {4[0]:.3f} {4[1]:.3f} {4[2]:.3f} -vu {8[0]:.3f} {8[1]:.3f} {8[2]:.3f} {5} "{6}-{7}pmd.oct"'.format(svp['viparams']['wnproc'], 
-                                 vv, cang, vd, cam.location, self.simnode['rvuparams'], svp['viparams']['filebase'], scene.frame_current, cam.matrix_world.to_quaternion()@mathutils.Vector((0, 1, 0)), ('', '-i')[self.simnode.illu])
+                                 vv, cang, vd, cam.location, self.simnode['rvuparams'], svp['viparams']['filebase'], frame, cam.matrix_world.to_quaternion()@mathutils.Vector((0, 1, 0)), ('', '-i')[self.simnode.illu])
 
                 else:
                     rvucmd = 'rvu -w {11} -ap "{8}" 50 {9} -n {0} -vv {1:.3f} -vh {2:.3f} -vd {3[0]:.3f} {3[1]:.3f} {3[2]:.3f} -vp {4[0]:.3f} {4[1]:.3f} {4[2]:.3f} -vu {10[0]:.3f} {10[1]:.3f} {10[2]:.3f} {5} "{6}-{7}.oct"'.format(svp['viparams']['wnproc'], 
-                                 vv, cang, vd, cam.location, self.simnode['rvuparams'], svp['viparams']['filebase'], scene.frame_current, '{}-{}.gpm'.format(svp['viparams']['filebase'], frame), cpfileentry, cam.matrix_world.to_quaternion()@mathutils.Vector((0, 1, 0)), ('', '-i')[self.simnode.illu])
+                                 vv, cang, vd, cam.location, self.simnode['rvuparams'], svp['viparams']['filebase'], frame, '{}-{}.gpm'.format(svp['viparams']['filebase'], frame), cpfileentry, cam.matrix_world.to_quaternion()@mathutils.Vector((0, 1, 0)), ('', '-i')[self.simnode.illu])
 
             else:
                 rvucmd = 'rvu -w {9} -n {0} -vv {1:.3f} -vh {2:.3f} -vd {3[0]:.3f} {3[1]:.3f} {3[2]:.3f} -vp {4[0]:.3f} {4[1]:.3f} {4[2]:.3f} -vu {8[0]:.3f} {8[1]:.3f} {8[2]:.3f} {5} "{6}-{7}.oct"'.format(svp['viparams']['wnproc'], 
-                                 vv, cang, vd, cam.location, self.simnode['rvuparams'], svp['viparams']['filebase'], scene.frame_current, cam.matrix_world.to_quaternion()@ mathutils.Vector((0, 1, 0)), ('', '-i')[self.simnode.illu])
+                                 vv, cang, vd, cam.location, self.simnode['rvuparams'], svp['viparams']['filebase'], frame, cam.matrix_world.to_quaternion()@ mathutils.Vector((0, 1, 0)), ('', '-i')[self.simnode.illu])
 
             logentry('Rvu command: {}'.format(rvucmd))
             self.rvurun = Popen(shlex.split(rvucmd), stdout = PIPE, stderr = PIPE)
@@ -1071,13 +1074,16 @@ class NODE_OT_Li_Im(bpy.types.Operator):
                     self.images.append(os.path.join(self.folder, 'images', '{}-{}.hdr'.format(self.basename, self.frameold)))
                     self.frameold = self.frame
             else:
-                while sum([rp.poll() is None for rp in self.rpruns]) == 0 and len(self.rpruns) < self.frames:
+                while sum([rp.poll() is None for rp in self.rpruns]) == 0 and len(self.rpruns) <= self.frames:
                     with open("{}-{}.hdr".format(os.path.join(self.folder, 'images', self.basename), self.frame), 'w') as imfile:
                         self.rpruns.append(Popen(shlex.split(self.rpictcmds[self.frame - self.fs]), stdout=imfile, stderr = PIPE))
-
-                if [rp.poll() for rp in self.rpruns][self.frame - self.fs] is not None:
-                    self.images.append(os.path.join(self.folder, 'images', '{}-{}.hdr'.format(self.basename, self.frame)))
-                    self.frame += 1
+#                print([rp.poll() for rp in self.rpruns], [self.frame - self.fs])
+                try:
+                    if [rp.poll() for rp in self.rpruns][self.frame - self.fs] is not None:
+                        self.images.append(os.path.join(self.folder, 'images', '{}-{}.hdr'.format(self.basename, self.frame)))
+                        self.frame += 1
+                except:
+                    print('passing')
                                         
         if event.type == 'TIMER':            
             f = self.frame if self.frame <= self.fe else self.fe
