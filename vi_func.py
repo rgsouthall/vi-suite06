@@ -527,6 +527,7 @@ def lividisplay(self, scene):
                 livires = geom.layers.float['{}{}'.format(svp.li_disp_menu, frame)]
                 res = geom.layers.float['{}{}'.format(svp.li_disp_menu, frame)]
                 oreslist = [g[livires] for g in geom]
+                print(oreslist)
                 self['omax'][sf], self['omin'][sf], self['oave'][sf] = max(oreslist), min(oreslist), sum(oreslist)/len(oreslist)
                 smaxres, sminres =  max(svp['liparams']['maxres'].values()), min(svp['liparams']['minres'].values())
                 
@@ -1548,7 +1549,7 @@ def sunpath(context):
     svp = scene.vi_params
     suns = [ob for ob in scene.objects if ob.parent and ob.type == 'LIGHT' and ob.data.type == 'SUN' and ob.parent.get('VIType') == "SPathMesh" ]
 
-    if svp['spparams'].get('suns') and svp['spparams']['suns'] == '0':        
+    if svp.get('spparams') and svp['spparams'].get('suns') and svp['spparams']['suns'] == '0':        
         if suns:                          
             alt, azi, beta, phi = solarPosition(svp.sp_sd, svp.sp_sh, svp.latitude, svp.longitude)
             suns[0].location.z = 100 * sin(beta)
@@ -1855,10 +1856,12 @@ def retdates(sdoy, edoy, y):
         
 def li_calcob(ob, li):
     ovp = ob.vi_params
+
     if not ob.data.materials:
         ovp.licalc = 0
     else:
         ovp.licalc = 1 if [face.index for face in ob.data.polygons if ob.data.materials[face.material_index] and ob.data.materials[face.material_index].vi_params.mattype == '1'] else 0
+    
     return ovp.licalc
     
 def sunposh(context, suns):

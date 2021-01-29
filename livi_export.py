@@ -132,9 +132,16 @@ def radgexport(export_op, node, **kwargs):
     clearscene(scene, export_op)
     frames = range(node['Options']['fs'], node['Options']['fe'] + 1)
     svp['liparams']['cp'] = node.cpoint
+
+    for o in [o for o in scene.objects if o.type == 'MESH']:
+        o.vi_params.licalc = 0 
+
     geooblist, caloblist, lightlist = retobjs('livig'), retobjs('livic'), retobjs('livil')
             
     for o in caloblist:
+        print(o.name, o.vi_params.licalc)
+#        o.vi_params.licalc = 1
+
         if any([s < 0 for s in o.scale]):
             logentry('Negative scaling on calculation object {}. Results may not be as expected'.format(o.name))
             export_op.report({'WARNING'}, 'Negative scaling on calculation object {}. Results may not be as expected'.format(o.name))
@@ -194,6 +201,7 @@ def radgexport(export_op, node, **kwargs):
                 bm.transform(o.matrix_world.inverted())
                 bm.to_mesh(o.data)
                 bm.free()
+                o.vi_params.licalc = 1
             bmmod.free()     
             
             if o.particle_systems:

@@ -31,7 +31,7 @@ from .livi_export import livi_sun, livi_sky, livi_ground, hdrexport
 from .envi_mat import envi_materials, envi_constructions, envi_embodied, envi_layer, envi_layertype, envi_con_list
 from numpy import where, sort, median, array, argsort, stack
 from numpy import sum as nsum
-from .vi_dicts import rpictparams, rvuparams
+from .vi_dicts import rpictparams, rvuparams, rtraceparams, rtracecbdmparams
 
 try:
     import netgen
@@ -240,7 +240,8 @@ class No_Li_Geo(Node, ViNodes):
 
     def preexport(self, scene):
         self['Text'] = {}
-        self['Options'] = {'offset': self.offset, 'fs': (scene.frame_current, self.startframe)[self.animated], 'fe': (scene.frame_current, self.endframe)[self.animated], 'cp': self.cpoint, 'anim': self.animated}
+        self['Options'] = {'offset': self.offset, 'fs': (scene.frame_current, self.startframe)[self.animated], 
+                            'fe': (scene.frame_current, self.endframe)[self.animated], 'cp': self.cpoint, 'anim': self.animated}
         
     def postexport(self, scene):
         self.id_data.use_fake_user = 1
@@ -264,13 +265,14 @@ class No_Li_Con(Node, ViNodes):
     
     def ret_params(self):
         return [str(x) for x in (self.contextmenu, self.spectrummenu, self.canalysismenu, self.cbanalysismenu, 
-                   self.animated, self.skymenu, self.gref, self.shour, self.sdoy, self.startmonth, self.endmonth, self.damin, self.dasupp, self.dalux, self.daauto,
+                   self.animated, self.skymenu, '{:.2f}'.format(self.gref), self.shour, self.sdoy, self.startmonth, self.endmonth, self.damin, self.dasupp, self.dalux, self.daauto,
                    self.ehour, self.edoy, self.interval, self.hdr, self.hdrname, self.skyname, self.resname, self.turb, self.mtxname, self.cbdm_start_hour,
                    self.cbdm_end_hour, self.bambuildmenu, self.leed4, self.colour, self.cbdm_res, self.ay)]
 
     def nodeupdate(self, context):
         scene = context.scene
         nodecolour(self, self['exportstate'] != self.ret_params())
+
         if self.edoy < self.sdoy:
             self.edoy = self.sdoy
         if self.edoy == self.sdoy:
@@ -319,7 +321,7 @@ class No_Li_Con(Node, ViNodes):
     epsilon: FloatProperty(name="", description="Hour of simulation", min=1, max=8, default=6.3, update = nodeupdate)
     delta: FloatProperty(name="", description="Hour of simulation", min=0.05, max=0.5, default=0.15, update = nodeupdate)
     skymenu: EnumProperty(name="", items=skylist, description="Specify the type of sky for the simulation", default="0", update = nodeupdate)
-    gref: FloatProperty(name="", description="Ground reflectance", min=0.0, max=1.0, default=0.0, update = nodeupdate)
+    gref: FloatProperty(name="", description="Ground reflectance", min=0.0, max=1.0, default=0.0, precision = 2, update = nodeupdate)
     gcol:FloatVectorProperty(size = 3, name = '', description="Ground colour", attr = 'Color', default = [0, 1, 0], subtype = 'COLOR', update = nodeupdate)
     shour: FloatProperty(name="", description="Hour of simulation", min=0, max=23.99, default=12, subtype='TIME', unit='TIME', update = nodeupdate)
     sdoy: IntProperty(name="", description="Day of simulation", min=1, max=365, default=1, update = nodeupdate)
@@ -649,7 +651,7 @@ class No_Li_Con(Node, ViNodes):
         (sdoy, edoy) =  (self.sdoy, self.edoy) if self.contextmenu == '0' or not self.ay else (1, 365)
         typedict = {'Basic': '0', 'Compliance': self.canalysismenu, 'CBDM': self.cbanalysismenu}
         # ('Lux', 'DF') below to store DF values in the object
-        unitdict = {'Basic': (("Lux", "DF")[self.skyprog == '0' and self.skymenu == '3'], 'W/m2 (f)')[self.skyprog == '1' and self.spectrummenu =='1'], 
+        unitdict = {'Basic': (("Lux", "DF (%)")[self.skyprog == '0' and self.skymenu == '3'], 'W/m2 (f)')[self.skyprog == '1' and self.spectrummenu =='1'], 
                     'CBDM': (('klxh', 'kWh (f)')[int(self.spectrummenu)], 'kWh (f)', 'DA (%)')[int(self.cbanalysismenu)]}
         btypedict = {'0': self.bambuildmenu, '1': '', '2': self.bambuildmenu, '3': self.lebuildmenu}
         self['Options'] = {'Context': self.contextmenu, 'Preview': self['preview'], 'Type': typedict[self.contextmenu], 
@@ -775,8 +777,10 @@ class No_Li_Im(Node, ViNodes):
     def presim(self):
         self.time = datetime.datetime.now()
         scene = bpy.context.scene
+
         if sys.platform == 'win32':
             self.mp = 0
+
         pmaps = []
         sf, ef, = self.retframes()
         self['frames'] = range(sf, ef + 1)
@@ -810,13 +814,16 @@ class No_Li_Im(Node, ViNodes):
             (self['viewparams'][str(frame)]['-vh'], self['viewparams'][str(frame)]['-vv']) = (self.fov, self.fov) if self.fisheye else ('{:.3f}'.format(vh), '{:.3f}'.format(vv))
             self['viewparams'][str(frame)]['-vd'] = ' '.join(['{:.3f}'.format(v) for v in vd])
             self['viewparams'][str(frame)]['-x'], self['viewparams'][str(frame)]['-y'] = self.x, self.y
+
             if self.mp:
                 self['viewparams'][str(frame)]['-X'], self['viewparams'][str(frame)]['-Y'] = self.processes, 1
+
             self['viewparams'][str(frame)]['-vp'] = '{0[0]:.3f} {0[1]:.3f} {0[2]:.3f}'.format(cam.location)
             self['viewparams'][str(frame)]['-vu'] = '{0[0]:.3f} {0[1]:.3f} {0[2]:.3f}'.format(cam.matrix_world.to_quaternion()@mathutils.Vector((0, 1, 0)))
             
             if self.illu:
                 self['viewparams'][str(frame)]['-i'] = ''
+
         self['pmaps'] = pmaps
         self.run = 1
         nodecolour(self, 1)
@@ -972,10 +979,6 @@ class No_Li_Sim(Node, ViNodes):
     cusacc: StringProperty(
             name="", description="Custom Radiance simulation parameters", default="", update = nodeupdate)
     
-    rtracebasic = (("-ab", 2, 3, 4), ("-ad", 256, 1024, 4096), ("-as", 128, 512, 2048), ("-aa", 0, 0, 0), ("-dj", 0, 0.7, 1), ("-ds", 0, 0.5, 0.15), ("-dr", 1, 3, 5), ("-ss", 0, 2, 5), ("-st", 1, 0.75, 0.1), ("-lw", 0.0001, 0.00001, 0.000002), ("-lr", 2, 3, 4))
-    rtraceadvance = (("-ab", 3, 5), ("-ad", 4096, 8192), ("-as", 512, 1024), ("-aa", 0.0, 0.0), ("-dj", 0.7, 1), ("-ds", 0.5, 0.15), ("-dr", 2, 3), ("-ss", 2, 5), ("-st", 0.75, 0.1), ("-lw", 1e-4, 1e-5), ("-lr", 3, 5))
-    rvubasic = (("-ab", 2, 3, 4), ("-ad", 256, 1024, 4096), ("-as", 128, 512, 2048), ("-aa", 0, 0, 0), ("-dj", 0, 0.7, 1), ("-ds", 0.5, 0.15, 0.15), ("-dr", 1, 3, 5), ("-ss", 0, 2, 5), ("-st", 1, 0.75, 0.1), ("-lw", 0.0001, 0.00001, 0.0000002), ("-lr", 3, 3, 4))
-    rvuadvance = (("-ab", 3, 5), ("-ad", 4096, 8192), ("-as", 1024, 2048), ("-aa", 0.0, 0.0), ("-dj", 0.7, 1), ("-ds", 0.5, 0.15), ("-dr", 2, 3), ("-ss", 2, 5), ("-st", 0.75, 0.1), ("-lw", 1e-4, 1e-5), ("-lr", 3, 5))
     pmap: BoolProperty(name = '', default = False, update = nodeupdate)
     pmapgno: IntProperty(name = '', default = 50000, update = nodeupdate)
     pmapcno: IntProperty(name = '', default = 0, update = nodeupdate)
@@ -1045,11 +1048,14 @@ class No_Li_Sim(Node, ViNodes):
         self['coptions'] = self.inputs['Context in'].links[0].from_node['Options']
         self['goptions'] = self.inputs['Geometry in'].links[0].from_node['Options']
         self['radfiles'], self['reslists'] = {}, [[]]
+
         if self['coptions']['Context'] == 'Basic':
-            self['radparams'] = ' {} '.format(self.cusacc) if self.simacc == '3' else (" {0[0]} {1[0]} {0[1]} {1[1]} {0[2]} {1[2]} {0[3]} {1[3]} {0[4]} {1[4]} {0[5]} {1[5]} {0[6]} {1[6]} {0[7]} {1[7]} {0[8]} {1[8]} {0[9]} {1[9]} {0[10]} {1[10]} ".format([n[0] for n in self.rtracebasic], [n[int(self.simacc)+1] for n in self.rtracebasic]))
+            self['radparams'] = ' {} '.format(self.cusacc) if self.simacc == '3' else ''.join([' {} {} '.format(k, rtraceparams[k][int(self.simacc)]) for k in rtraceparams])
+            self['rvuparams'] = ' {} '.format(self.cusacc) if self.simacc == '3' else ''.join([' {} {} '.format(k, rvuparams[k][int(self.simacc)]) for k in rvuparams])
         else:
-            self['radparams'] = ' {} '.format(self.cusacc) if self.csimacc == '0' else (" {0[0]} {1[0]} {0[1]} {1[1]} {0[2]} {1[2]} {0[3]} {1[3]} {0[4]} {1[4]} {0[5]} {1[5]} {0[6]} {1[6]} {0[7]} {1[7]} {0[8]} {1[8]} {0[9]} {1[9]} {0[10]} {1[10]} ".format([n[0] for n in self.rtraceadvance], [n[int(self.csimacc)] for n in self.rtraceadvance]))
-        self['rvuparams'] = ' {} '.format(self.cusacc) if self.simacc == '3' else ''.join([' {} {} '.format(k, rvuparams[k][int(self.simacc)]) for k in rvuparams])
+            self['radparams'] = ' {} '.format(self.cusacc) if self.simacc == '3' else ''.join([' {} {} '.format(k, rtracecbdmparams[k][int(self.simacc)]) for k in rtracecbdmparams])
+            self['rvuparams'] = ' {} '.format(self.cusacc) if self.simacc == '3' else ''.join([' {} {} '.format(k, rvuparams[k][int(self.simacc)]) for k in rvuparams])
+        
     def sim(self, scene):
         svp = scene.vi_params
         self['frames'] = range(svp['liparams']['fs'], svp['liparams']['fe'] + 1)
@@ -1549,7 +1555,6 @@ class No_En_RF(Node, ViNodes):
     dedoy: IntProperty()
     
     def init(self, context):
-        self['nodeid'] = nodeid(self)
         self.outputs.new('ViR', 'Results out')
         self['exportstate'] = ''
         self['year'] = 2015        
@@ -1557,10 +1562,10 @@ class No_En_RF(Node, ViNodes):
 
     def draw_buttons(self, context, layout):
         row = layout.row()
-        row.operator('node.esoselect', text = 'ESO select').nodeid = self['nodeid']
+        row.operator('node.esoselect', text = 'ESO select')
         row.prop(self, 'esoname')
         row = layout.row()
-        row.operator("node.fileprocess", text = 'Process file').nodeid = self['nodeid']
+        row.operator("node.fileprocess", text = 'Process file')
 
     def update(self):
         socklink(self.outputs['Results out'], self['nodeid'].split('@')[1])
@@ -1604,7 +1609,7 @@ class No_Vi_Chart(Node, ViNodes):
         if self.inputs['X-axis'].links:
             innode = self.inputs['X-axis'].links[0].from_node
 
-            if innode.get('reslists'):
+            if innode.get('reslists') and all(len(r) > 1 for r in innode['reslists']):
                 newrow(layout, 'Animated:', self, 'parametricmenu')
 
                 if self.parametricmenu == '0':                

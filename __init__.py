@@ -103,7 +103,7 @@ else:
     from .vi_node import No_En_IF, No_En_RF, So_En_Net_WPC, No_En_Net_WPC
     from .vi_func import iprop, bprop, eprop, fprop, sprop, fvprop, sunpath1
     from .vi_func import lividisplay, logentry
-    from .livi_func import rtpoints, lhcalcapply, udidacalcapply, compcalcapply, basiccalcapply, radmat, retsv
+    from .livi_func import rtpoints, lhcalcapply, udidacalcapply, basiccalcapply, radmat, retsv
     from .envi_func import enunits, enpunits, enparametric, resnameunits, aresnameunits
     from .flovi_func import fvmat, ret_fvbp_menu, ret_fvbu_menu, ret_fvbnut_menu, ret_fvbnutilda_menu, ret_fvbk_menu, ret_fvbepsilon_menu, ret_fvbomega_menu, ret_fvbt_menu, ret_fvba_menu, ret_fvbprgh_menu, flovi_bm_update, ret_fvrad_menu
     from .vi_operators import NODE_OT_WindRose, NODE_OT_SVF, NODE_OT_En_Con, NODE_OT_En_Sim, NODE_OT_TextUpdate
@@ -154,12 +154,16 @@ def unititems(self, context):
                     ('firrad', 'W', 'Full spectrum irradiance')]
         elif svp['liparams']['unit'] == 'Lux':
             return [('illu', 'Lux', 'Illuminance'), 
-                    ('virrad', 'Watts', 'Visible spectrum illuminance')]
-        elif svp['liparams']['unit'] == 'DF':
+                    ('virrad', 'Watts', 'Visible spectrum irradiance'),
+                    ('virradm2', 'Watts/m2', 'Visible spectrum irradiance per metre square')]
+        elif svp['liparams']['unit'] == 'DF (%)':
             return [('df', 'DF (%)', 'Daylight factor'), 
-                    ('virrad', 'Watts', 'Visible spectrum illuminance')]
+                    ('virrad', 'Watts', 'Visible spectrum irradiance'),
+                    ('virradm2', 'Watts/m2', 'Visible spectrum irradiance per metre square')]
         elif svp['liparams']['unit'] == 'klxh':
-            return [('illuh', 'klux-hours', 'kilo Lux-hours'), ('virradh', 'kWh (v)', 'kilo-Watt hours (visible)')]
+            return [('illuh', 'klux-hours', 'kilo Lux-hours'), 
+                    ('virradh', 'kWh (v)', 'kilo-Watt hours (visible)'), 
+                    ('virradhm2', 'kWh/m2 (v)', 'kilo-Watt hours per metre square (visible)')]
         elif svp['liparams']['unit'] == 'kWh (f)':
             return [('firradh', 'kWh (f)', 'kilo-Watt hours (solar spectrum)'), 
                     ('firradhm2', 'kWh/m2 (f)', 'kilo-Watt hours per square metre (solar spectrum)')]
@@ -367,8 +371,7 @@ class VI_Params_Object(bpy.types.PropertyGroup):
     licalc: bprop("", "", False)
     limerr: bprop("", "", False)
     manip: bprop("", "", False) 
-    bsdf_proxy: bprop("", "", False)
-    compcalcapply = compcalcapply    
+    bsdf_proxy: bprop("", "", False)   
     basiccalcapply = basiccalcapply 
     rtpoints = rtpoints
     udidacalcapply = udidacalcapply
@@ -399,7 +402,7 @@ class VI_Params_Object(bpy.types.PropertyGroup):
     bsdf_running: bprop("", "Running BSDF calculation", False)
 #    radbsdf = radbsdf
     retsv = retsv
-    envi_type: eprop([("0", "Construction", "Thermal Construction"), ("1", "Shading", "Shading Object"), ("2", "Chimney", "Thermal Chimney")], "", "Specify the EnVi surface type", "0")
+    envi_type: eprop([("0", "Construction", "Thermal Construction"), ("1", "Shading", "Shading Object")], "", "Specify the EnVi surface type", "0")
 #    envi_hab: bprop("", "Flag to tell EnVi this is a habitable zone", False)
     flovi_solver: EnumProperty(items = [('icoFoam', 'IcoFoam', 'Transient laminar solver'), ('simpleFoam', 'SimpleFoam', 'Transient turbulent solver'),
                                         ('bBSimpleFoam', 'buoyantBoussinesqSimpleFoam', 'Bouyant Boussinesq Turbulent solver'), ('bSimpleFoam', 'buoyantSimpleFoam', 'Bouyant Turbulent solver')], 

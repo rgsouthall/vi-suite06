@@ -138,7 +138,7 @@ def e_update(self, context):
     maxo, mino = svp.vi_leg_max, svp.vi_leg_min
     odiff = svp.vi_leg_max - svp.vi_leg_min
 
-    if context.active_object.mode == 'EDIT':
+    if not context.active_object or context.active_object.mode == 'EDIT':
         return
     if odiff:      
         for frame in range(svp['liparams']['fs'], svp['liparams']['fe'] + 1):
@@ -241,7 +241,7 @@ def li_display(disp_op, simnode):
     scene.frame_set(svp['liparams']['fs'])
     bpy.context.view_layer.objects.active = None
     
-    for i, o in enumerate([scene.objects[oname] for oname in svp['liparams']['{}c'.format(mtype)]]):        
+    for i, o in enumerate([o for o in scene.objects if o.vi_params.licalc]):        
         bm = bmesh.new()
 #        bm.from_object(o, dp)
 #            tempmesh = ob.evaluated_get(dp).to_mesh()
@@ -1566,17 +1566,18 @@ class draw_legend(Base_Display):
         scene = context.scene
         svp = scene.vi_params
 
-        if svp.li_disp_menu != 'None':  
+        try:
+            self.unit = res2unit[svp.li_disp_menu] if not svp.vi_leg_unit else svp.vi_leg_unit
+        except:
+            self.unit = svp['liparams']['unit'] if not svp.vi_leg_unit else svp.vi_leg_unit
+
+        if self.unit != 'None':  
             self.levels = svp.vi_leg_levels
             self.lh = 1/(self.levels + 1.25)
             self.cao = context.active_object        
             self.cols = retcols(mcm.get_cmap(svp.vi_leg_col), self.levels)
             (self.minres, self.maxres) = leg_min_max(svp)
             self.col, self.scale = svp.vi_leg_col, svp.vi_leg_scale
-            try:
-                self.unit = res2unit[svp.li_disp_menu] if not svp.vi_leg_unit else svp.vi_leg_unit
-            except:
-                self.unit = res2unit[svp['liparams']['unit']] if not svp.vi_leg_unit else svp.vi_leg_unit
             self.cols = retcols(mcm.get_cmap(svp.vi_leg_col), self.levels)
             resdiff = self.maxres - self.minres
             
@@ -1594,7 +1595,7 @@ class draw_legend(Base_Display):
             else:
                 self.resvals = ['{0} - {1}'.format(resvals[i], resvals[i+1]) for i in range(self.levels)]
                 
-            self.colours = [item for item in [self.cols[i] for i in range(self.levels)] for i in range(4)]                
+            self.colours = [item for item in [self.cols[i] for i in range(self.levels)] for i in range(4)]               
             blf.size(self.font_id, 12, self.dpi)        
             self.titxdimen = blf.dimensions(self.font_id, self.unit)[0]
             self.resxdimen = blf.dimensions(self.font_id, self.resvals[-1])[0]
@@ -2996,7 +2997,7 @@ class VIEW3D_OT_SSDisplay(bpy.types.Operator):
         redraw = 0 
         updates = [0 for i in self.images]
         
-        if svp.vi_display == 0 or svp['viparams']['vidisp'] != 'ss' or not [o for o in bpy.data.objects if o.name in svp['liparams']['shadc']] or not context.area:
+        if svp.vi_display == 0 or svp['viparams']['vidisp'] != 'ss' or not [o for o in bpy.data.objects if o.vi_params.licalc] or not context.area:
             svp.vi_display = 0
 
             if context.area:

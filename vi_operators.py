@@ -285,14 +285,21 @@ class NODE_OT_SVF(bpy.types.Operator):
             return {'CANCELLED'}
 
         shadobs = retobjs('livig')
+
         if not shadobs:
-            self.report({'ERROR'},"No shading objects have a material attached.")
+            self.report({'ERROR'},"No shading objects found.")
             return {'CANCELLED'}
             
-        svp['liparams']['shadc'] = [ob.name for ob in retobjs('ssc')]
-        if not svp['liparams']['shadc']:
-            self.report({'ERROR'},"No objects have a light sensor material attached.")
+#        svp['liparams']['shadc'] = [ob.name for ob in retobjs('ssc')]
+        calcobs = retobjs('ssc')
+
+        if not calcobs:
+            self.report({'ERROR'},"No objects with a light sensor material attached.")
             return {'CANCELLED'}
+
+        for o in scene.objects:
+            o.vi_params.licalc = 0
+
         simnode = context.node
         svp['viparams']['restree'] = simnode.id_data.name
         clearscene(scene, self)
@@ -330,30 +337,32 @@ class NODE_OT_SVF(bpy.types.Operator):
                     
         valdirecs = [v for v in zip(x, y, z)]
         lvaldirecs = len(valdirecs)
-        calcsteps = len(frange) * sum(len([f for f in o.data.polygons if o.data.materials[f.material_index].vi_params.mattype == '1']) for o in [scene.objects[on] for on in svp['liparams']['shadc']])
+        calcsteps = len(frange) * sum(len([f for f in o.data.polygons if o.data.materials[f.material_index].vi_params.mattype == '1']) for o in calcobs)
         curres, reslists = 0, []
         pfile = progressfile(svp['viparams']['newdir'], datetime.datetime.now(), calcsteps)
         kivyrun = progressbar(os.path.join(svp['viparams']['newdir'], 'viprogress'), 'Sky View')
         
-        for oi, o in enumerate([scene.objects[on] for on in svp['liparams']['shadc']]):
+        for oi, o in enumerate(calcobs):
             ovp = o.vi_params
             for k in ovp.keys():
                 del ovp[k]
-                
+            
             if any([s < 0 for s in o.scale]):
                 logentry('Negative scaling on calculation object {}. Results may not be as expected'.format(o.name))
                 self.report({'WARNING'}, 'Negative scaling on calculation object {}. Results may not be as expected'.format(o.name))
 
             ovp['omin'], ovp['omax'], ovp['oave'] = {}, {}, {}
             bm = bmesh.new()
-            bm.from_object(o, dp)
+            bm.from_mesh(o.to_mesh())
+            o.to_mesh_clear()
             clearlayers(bm, 'a')
-            bm.transform(o.matrix_world)
-            bm.normal_update()
             geom = bm.faces if simnode.cpoint == '0' else bm.verts
             geom.layers.int.new('cindex')
             cindex = geom.layers.int['cindex']
             [geom.layers.float.new('svf{}'.format(fi)) for fi in frange]
+            bm.transform(o.matrix_world)
+            bm.normal_update()
+            geom = bm.faces if simnode.cpoint == '0' else bm.verts
             avres, minres, maxres, g = [], [], [], 0
             
             if simnode.cpoint == '0':
@@ -392,14 +401,15 @@ class NODE_OT_SVF(bpy.types.Operator):
                     avres.append(ovp['oave']['svf{}'.format(frame)])
                     minres.append(ovp['omin']['svf{}'.format(frame)])
                     maxres.append(ovp['omax']['svf{}'.format(frame)])
-
+            
             reslists.append(['All', 'Frames', '', 'Frames', ' '.join(['{}'.format(f) for f in frange])])
             reslists.append(['All', 'Zone', o.name, 'Minimum', ' '.join(['{:.3f}'.format(mr) for mr in minres])])
             reslists.append(['All', 'Zone', o.name, 'Average', ' '.join(['{:.3f}'.format(mr) for mr in avres])])
             reslists.append(['All', 'Zone', o.name, 'Maximum', ' '.join(['{:.3f}'.format(mr) for mr in maxres])])
             bm.transform(o.matrix_world.inverted())
             bm.to_mesh(o.data)
-            bm.free()
+            bm.free()           
+            ovp.licalc = 1
 
         svp.vi_leg_max, svp.vi_leg_min = 100, 0
 
@@ -433,14 +443,20 @@ class NODE_OT_Shadow(bpy.types.Operator):
         shadobs = retobjs('livig')
         
         if not shadobs:
-            self.report({'ERROR'},"No shading objects have a material attached.")
+            self.report({'ERROR'},"No shadowing objects.")
             return {'CANCELLED'}
-            
-        svp['liparams']['shadc'] = [ob.name for ob in retobjs('ssc')]
+
+        calcobs = retobjs('ssc')
         
-        if not svp['liparams']['shadc']:
-            self.report({'ERROR'},"No objects have a VI Shadow material attached.")
+        if not calcobs:
+            self.report({'ERROR'},"No objects have a light sensor material attached.")
             return {'CANCELLED'}
+
+        for o in scene.objects:
+            o.vi_params.licalc = 0
+
+            if o in calcobs:
+                o.vi_params.licalc = 1    
         
         simnode = context.node
         svp['viparams']['restree'] = simnode.id_data.name
@@ -468,20 +484,19 @@ class NODE_OT_Shadow(bpy.types.Operator):
         endtime = datetime.datetime(y, simnode.edate.month, simnode.edate.day, simnode.endhour - 1)
         interval = datetime.timedelta(hours = 1/simnode.interval)        
         times = [time + interval*t for t in range(int((endtime - time)/interval) + simnode.interval) if simnode.starthour - 1 <= (time + interval*t).hour <= simnode.endhour  - 1]
-        print(time, endtime, len(times))
         sps = [solarPosition(t.timetuple().tm_yday, t.hour+t.minute/60, svp.latitude, svp.longitude)[2:] for t in times]
         valmask = array([sp[0] > 0 for sp in sps], dtype = int8)
         direcs = [mathutils.Vector((-sin(sp[1]), -cos(sp[1]), tan(sp[0]))) for sp in sps]  
         valdirecs = [mathutils.Vector((-sin(sp[1]), -cos(sp[1]), tan(sp[0]))) for sp in sps if sp[0] > 0]  
         lvaldirecs = len(valdirecs)
         ilvaldirecs = 1/lvaldirecs
-        calcsteps = len(frange) * sum(len([f for f in o.data.polygons if o.data.materials[f.material_index].vi_params.mattype == '1']) for o in [scene.objects.get(on) for on in svp['liparams']['shadc']])
+        calcsteps = len(frange) * sum(len([f for f in o.data.polygons if o.data.materials[f.material_index].vi_params.mattype == '1']) for o in calcobs)
         curres, reslists = 0, []
         pfile = progressfile(svp['viparams']['newdir'], datetime.datetime.now(), calcsteps)
         kivyrun = progressbar(os.path.join(scene.vi_params['viparams']['newdir'], 'viprogress'), 'Shadow Map')
         logentry(f'Conducting shadow map calculation over {simnode.edoy - simnode.sdoy + 1} days with {simnode.interval} samples per hour for {int(len(direcs)/simnode.interval)} total hours and {lvaldirecs} available sun hours')
         
-        for oi, o in enumerate([scene.objects[on] for on in svp['liparams']['shadc']]):
+        for oi, o in enumerate(calcobs):
             ovp = o.vi_params
             for k in ovp.keys():
                 del ovp[k]
@@ -499,16 +514,16 @@ class NODE_OT_Shadow(bpy.types.Operator):
                 
             ovp['hours'] = arange(simnode.starthour, simnode.endhour + 1, 1/simnode.interval, dtype = float)
             bm = bmesh.new()
-            bm.from_object(o, dp)
-#            bm.from_mesh(o.data)
+            bm.from_mesh(o.to_mesh())
+            o.to_mesh_clear()
             clearlayers(bm, 'a')
-            bm.transform(o.matrix_world)
-            bm.normal_update()
             geom = bm.faces if simnode.cpoint == '0' else bm.verts
             geom.layers.int.new('cindex')
             cindex = geom.layers.int['cindex']
             [geom.layers.float.new('sm{}'.format(fi)) for fi in frange]
             [geom.layers.float.new('hourres{}'.format(fi)) for fi in frange]
+            bm.transform(o.matrix_world)
+            bm.normal_update()
             avres, minres, maxres, g = [], [], [], 0
             
             if simnode.cpoint == '0':
@@ -560,7 +575,8 @@ class NODE_OT_Shadow(bpy.types.Operator):
             bm.transform(o.matrix_world.inverted())
             bm.to_mesh(o.data)
             bm.free()
-
+            o.vi_params.licalc = 1
+  
         svp.vi_leg_max, svp.vi_leg_min = 100, 0
 
         if kivyrun.poll() is None:
@@ -882,6 +898,8 @@ class NODE_OT_Li_Pre(bpy.types.Operator, ExportHelper):
     def invoke(self, context, event):
         scene = context.scene
         svp = scene.vi_params
+        svp.vi_display = 0
+
         if viparams(self, scene):
             return {'CANCELLED'}
         
@@ -989,6 +1007,7 @@ class NODE_OT_Li_Sim(bpy.types.Operator):
         scene = context.scene
         svp = scene.vi_params
         svp.vi_display = 0
+
         if viparams(self, scene):
             return {'CANCELLED'}
                     
@@ -1083,7 +1102,7 @@ class NODE_OT_Li_Im(bpy.types.Operator):
                         self.images.append(os.path.join(self.folder, 'images', '{}-{}.hdr'.format(self.basename, self.frame)))
                         self.frame += 1
                 except:
-                    print('passing')
+                    pass
                                         
         if event.type == 'TIMER':            
             f = self.frame if self.frame <= self.fe else self.fe
