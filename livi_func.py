@@ -32,7 +32,7 @@ from .vi_dicts import res2unit, unit2res
 
 def sunposlivi(scene, skynode, frames, sun, stime):
     svp = scene.vi_params
-    
+
     if skynode['skynum'] < 3 or (skynode.skyprog == '1' and skynode.epsilon > 1): 
         times = [stime + frame*datetime.timedelta(seconds = 3600*skynode.interval) for frame in range(len(frames))]  
         solposs = [solarPosition(t.timetuple()[7], t.hour + (t.minute)*0.016666, svp.latitude, svp.longitude) for t in times]

@@ -6205,26 +6205,25 @@ class No_En_Mat_PV(Node, EnViMatNodes):
     
     def init(self, context):
         mat = bpy.data.materials[self.id_data.name]
+
         if not mat.vi_params.get('enparams'):
             mat.vi_params['enparams'] = {'area' : -1} 
+
         self['area'] = 0
         self.inputs.new('So_En_Mat_PVG', 'PV Generator')
         self.inputs.new('So_En_Sched', 'PV Schedule')
-#        self.inputs['PV Schedule'].hide = True
         self.outputs.new('So_En_Mat_PV', 'PV')
         
     def draw_buttons(self, context, layout):
         mat = bpy.data.materials[self.id_data.name]
-        row = layout.row()
-#        print(self['area'], mat.vi_params['enparams']['area'])
-#        if self['area'] != mat.vi_params['enparams']['area']:            
+        row = layout.row()           
         row.operator('node.pv_area', text = "Area Calc")
+
         try:                        
             row.label(text = '{:.2f} m2'.format(self['area'])) 
         except: 
             row.label(text = 'Area  = N/A')
-        #else:
-#            row.label(text = 'Area: {:.2f}m2'.format(self['area']))
+
         newrow(layout, "Heat transfer:", self, "hti")
         newrow(layout, 'Type:', self, 'pp')
         
@@ -6247,9 +6246,11 @@ class No_En_Mat_PV(Node, EnViMatNodes):
                 newrow(layout, "TCSCC:", self, "tcscc")
                 newrow(layout, "TCOCV:", self, "tcocv")                
                 newrow(layout, "Nominal temp.:", self, "ctnoct")
+
                 if self.pv_name:
                     row=layout.row()
                     row.operator('node.pv_save', text = "PV Save")
+                    
             newrow(layout, "Trans*absorp:", self, "tap")
             newrow(layout, "Band gap:", self, "sbg")
             newrow(layout, "Shunt:", self, "sr")

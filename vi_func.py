@@ -527,7 +527,6 @@ def lividisplay(self, scene):
                 livires = geom.layers.float['{}{}'.format(svp.li_disp_menu, frame)]
                 res = geom.layers.float['{}{}'.format(svp.li_disp_menu, frame)]
                 oreslist = [g[livires] for g in geom]
-                print(oreslist)
                 self['omax'][sf], self['omin'][sf], self['oave'][sf] = max(oreslist), min(oreslist), sum(oreslist)/len(oreslist)
                 smaxres, sminres =  max(svp['liparams']['maxres'].values()), min(svp['liparams']['minres'].values())
                 
@@ -1905,12 +1904,12 @@ def sunapply(scene, sun, values, solposs, frames):
         sun.data.node_tree.animation_data_create()
         sun.data.node_tree.animation_data.action = bpy.data.actions.new(name="EnVi Sun Node")
         emnodes = [emnode for emnode in sun.data.node_tree.nodes if emnode.bl_label == 'Emission']
+        bbnodes = [bbnode for bbnode in sun.data.node_tree.nodes if bbnode.bl_label == 'Blackbody']
+
         for emnode in emnodes:
             em1 = sun.data.node_tree.animation_data.action.fcurves.new(data_path='nodes["{}"].inputs[1].default_value'.format(emnode.name))
-#            em2 = sun.data.node_tree.animation_data.action.fcurves.new(data_path='nodes["{}"].inputs[1].default_value'.format(emnode.name))
             em1.keyframe_points.add(len(frames))
-#            em2.keyframe_points.add(len(frames))
-        bbnodes = [bbnode for bbnode in sun.data.node_tree.nodes if bbnode.bl_label == 'Blackbody']
+        
         for bbnode in bbnodes:
             bb1 = sun.data.node_tree.animation_data.action.fcurves.new(data_path='nodes["{}"].inputs[0].default_value'.format(bbnode.name))
             bb1.keyframe_points.add(len(frames))
@@ -1921,6 +1920,7 @@ def sunapply(scene, sun, values, solposs, frames):
         scene.world.node_tree.animation_data.action = bpy.data.actions.new(name="EnVi World Node") 
         stnodes = [stnode for stnode in scene.world.node_tree.nodes if stnode.bl_label == 'Sky Texture']
         bnodes = [bnode for bnode in scene.world.node_tree.nodes if bnode.bl_label == 'Background']
+
         for stnode in stnodes:
             st1x = scene.world.node_tree.animation_data.action.fcurves.new(data_path='nodes["{}"].sun_direction'.format(stnode.name), index = 0)
             st1y = scene.world.node_tree.animation_data.action.fcurves.new(data_path='nodes["{}"].sun_direction'.format(stnode.name), index = 1)
@@ -1928,22 +1928,19 @@ def sunapply(scene, sun, values, solposs, frames):
             st1x.keyframe_points.add(len(frames))
             st1y.keyframe_points.add(len(frames))
             st1z.keyframe_points.add(len(frames))
-#        for bnode in bnodes:
-#            b1 = scene.world.node_tree.animation_data.action.fcurves.new(data_path='nodes["{}"].inputs[1].default_value'.format(bnode.name))
-#            b1.keyframe_points.add(len(frames))
 
     for f, frame in enumerate(frames):
         (sun.data.shadow_soft_size, sun.data.energy) = values[f][:2]
         sunpos = [x*100 for x in (-sin(solposs[f][3]), -cos(solposs[f][3]), tan(solposs[f][2]))]
         sunrot = [(pi/2) - solposs[f][2], 0, -solposs[f][3]]
         scene.display.light_direction = (-sin(solposs[f][3]) * cos(solposs[f][2]), sin(solposs[f][2]),  cos(solposs[f][3]) * cos(solposs[f][2])) 
+
         if scene.render.engine == 'CYCLES' and scene.world.node_tree:
             if 'Sky Texture' in [no.bl_label for no in scene.world.node_tree.nodes]:
                 skydir = -sin(solposs[f][3]), -cos(solposs[f][3]), sin(solposs[f][2])
                 st1x.keyframe_points[f].co = frame, skydir[0]
                 st1y.keyframe_points[f].co = frame, skydir[1]
                 st1z.keyframe_points[f].co = frame, skydir[2]
-#            b1.keyframe_points[f].co = frame, values[f][2]
 
         if scene.render.engine == 'CYCLES' and sun.data.node_tree:
             for emnode in emnodes:

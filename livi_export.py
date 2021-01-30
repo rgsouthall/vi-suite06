@@ -120,7 +120,6 @@ def bmesh2mesh(scene, obmesh, o, frame, tmf, fb, tri):
                     logentry('Obj2mesh error: {}. Using geometry export fallback on {}. Try triangulating the Radiance mesh export'.format(o2mrun[1], o.name))
     
                 gradfile += radpoints(o, mfaces, 0)
-#    print(gradfile)
            
     bm.free()       
     return gradfile
@@ -139,9 +138,6 @@ def radgexport(export_op, node, **kwargs):
     geooblist, caloblist, lightlist = retobjs('livig'), retobjs('livic'), retobjs('livil')
             
     for o in caloblist:
-        print(o.name, o.vi_params.licalc)
-#        o.vi_params.licalc = 1
-
         if any([s < 0 for s in o.scale]):
             logentry('Negative scaling on calculation object {}. Results may not be as expected'.format(o.name))
             export_op.report({'WARNING'}, 'Negative scaling on calculation object {}. Results may not be as expected'.format(o.name))
