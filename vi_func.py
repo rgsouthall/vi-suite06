@@ -1931,7 +1931,10 @@ def sunapply(scene, sun, values, solposs, frames):
 
     for f, frame in enumerate(frames):
         (sun.data.shadow_soft_size, sun.data.energy) = values[f][:2]
-        sunpos = [x*100 for x in (-sin(solposs[f][3]), -cos(solposs[f][3]), tan(solposs[f][2]))]
+        sunz = 100 * sin(solposs[f][2])
+        sunx = -(100**2 - (sunz)**2)**0.5 * sin(solposs[f][3])
+        suny = -(100**2 - (sunz)**2)**0.5 * cos(solposs[f][3])
+        sunpos = [sunx, suny, sunz]
         sunrot = [(pi/2) - solposs[f][2], 0, -solposs[f][3]]
         scene.display.light_direction = (-sin(solposs[f][3]) * cos(solposs[f][2]), sin(solposs[f][2]),  cos(solposs[f][3]) * cos(solposs[f][2])) 
 

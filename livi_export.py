@@ -120,7 +120,7 @@ def bmesh2mesh(scene, obmesh, o, frame, tmf, fb, tri):
                     logentry('Obj2mesh error: {}. Using geometry export fallback on {}. Try triangulating the Radiance mesh export'.format(o2mrun[1], o.name))
     
                 gradfile += radpoints(o, mfaces, 0)
-           
+ 
     bm.free()       
     return gradfile
 

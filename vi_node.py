@@ -147,7 +147,6 @@ class No_Loc(Node, ViNodes):
             pass
 
     def update(self):
-#        self['year'] = 2015
         if self.outputs.get('Location out'):
             socklink(self.outputs['Location out'], self.id_data.name)
         nodecolour(self, self.ready())
@@ -169,7 +168,7 @@ class No_Loc(Node, ViNodes):
             return 1
         if any([link.to_node.bl_label in ('LiVi CBDM', 'EnVi Export') and self.loc != "1" for link in self.outputs['Location out'].links]):
             return 1
-        if self['year'] == 2016:
+        if self.get('year') == 2016:
             return 0
         return 0
 
@@ -393,8 +392,8 @@ class No_Li_Con(Node, ViNodes):
                 newrow(layout, "Ground ref:", self, 'gref')
                 newrow(layout, "Ground col:", self, 'gcol')
                 
-                if self.skymenu in ('0', '1', '2'):
-                    newrow(layout, "Start hour:", self, 'shour')
+                if self.skymenu in ('0', '1', '2'):                    
+                    newrow(layout, "Start hour {}:{}:".format(int(self.shour), int((self.shour*60) % 60)), self, 'shour')
                     newrow(layout, 'Start day {}/{}:'.format(sdate.day, sdate.month), self, "sdoy")
                     newrow(layout, "Animation;", self, 'animated')
                     
@@ -403,7 +402,7 @@ class No_Li_Con(Node, ViNodes):
                         row = layout.row()
                         row.label(text = 'End frame:')
                         row.label(text = '{}'.format(self['endframe']))
-                        newrow(layout, "End hour:", self, 'ehour')
+                        newrow(layout, "End hour {}:{}:".format(int(self.ehour), int((self.ehour*60) % 60)), self, 'ehour')
                         newrow(layout, 'End day {}/{}:'.format(edate.day, edate.month), self, "edoy")
                         newrow(layout, "Interval (hours):", self, 'interval')
                     newrow(layout, "Turbidity", self, 'turb')
@@ -414,7 +413,7 @@ class No_Li_Con(Node, ViNodes):
                 newrow(layout, "Delta:", self, 'delta')
                 newrow(layout, "Ground ref:", self, 'gref')
                 newrow(layout, "Ground col:", self, 'gcol')
-                newrow(layout, "Start hour:", self, 'shour')
+                newrow(layout, "Start hour {}:{}".format(int(self.shour), int((self.shour*60) % 60)), self, 'shour')
                 newrow(layout, 'Start day {}/{}:'.format(sdate.day, sdate.month), self, "sdoy")
                 newrow(layout, 'Colour sky', self, "colour")
                 newrow(layout, "Animation;", self, 'animated')
@@ -424,7 +423,7 @@ class No_Li_Con(Node, ViNodes):
                     row = layout.row()
                     row.label(text = 'End frame:')
                     row.label(text = '{}'.format(self['endframe']))
-                    newrow(layout, "End hour:", self, 'ehour')
+                    newrow(layout, "End hour {}:{}".format(int(self.ehour), int((self.ehour*60) % 60)), self, 'ehour')
                     newrow(layout, 'End day {}/{}:'.format(edate.day, edate.month), self, "edoy")
                     newrow(layout, "Interval (hours):", self, 'interval')
                 
@@ -475,8 +474,8 @@ class No_Li_Con(Node, ViNodes):
                     row.label(text = "--")
 
             elif self.cbanalysismenu == '2' and self.leed4:   
-                newrow(layout, 'Start hour:', self, 'cbdm_start_hour')
-                newrow(layout, 'End hour:', self, 'cbdm_end_hour')
+                newrow(layout, "Start hour:", self, 'cbdm_start_hour')
+                newrow(layout, "End hour:", self, 'cbdm_end_hour')
                 
             if self.cbanalysismenu == '0':
                 newrow(layout, 'Source file:', self, 'sourcemenu')
@@ -1237,8 +1236,8 @@ class No_Vi_SS(Node, ViNodes):
 
             newrow(layout, 'Start day {}/{}:'.format(sdate.day, sdate.month), self, "sdoy")
             newrow(layout, 'End day {}/{}:'.format(edate.day, edate.month), self, "edoy")
-            newrow(layout, 'Start hour:', self, "starthour")
-            newrow(layout, 'End hour:', self, "endhour")
+            newrow(layout, 'Start hour:', self, 'starthour')
+            newrow(layout, 'End hour:', self, 'endhour')
             newrow(layout, 'Hour steps:', self, "interval")
             newrow(layout, 'Result point:', self, "cpoint")
             newrow(layout, 'Offset:', self, 'offset')
