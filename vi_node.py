@@ -973,7 +973,7 @@ class No_Li_Sim(Node, ViNodes):
     csimacc: EnumProperty(items=[("0", "Custom", "Edit Radiance parameters"), ("1", "Initial", "Initial accuracy for this metric"), ("2", "Final", "Final accuracy for this metric")],
             name="", description="Simulation accuracy", default="1", update = nodeupdate)
     cusacc: StringProperty(
-            name="", description="Custom Radiance simulation parameters", default="", update = nodeupdate)
+            name="Custom parameters", description="Custom Radiance simulation parameters", default="", update = nodeupdate)
     
     pmap: BoolProperty(name = '', default = False, update = nodeupdate)
     pmapgno: IntProperty(name = '', default = 50000, update = nodeupdate)
@@ -1018,7 +1018,8 @@ class No_Li_Sim(Node, ViNodes):
             row.prop(self, self['simdict'][cinnode['Options']['Context']])
             
             if (self.simacc == '3' and cinnode['Options']['Context'] == 'Basic') or (self.csimacc == '0' and cinnode['Options']['Context'] == 'CBDM'):
-               newrow(layout, "Radiance parameters:", self, 'cusacc')
+                row = layout.row()
+                row.prop(self, 'cusacc')
     
             if not self.run and (self.simacc != '3' or self.validparams):
                 if cinnode['Options']['Preview']:
