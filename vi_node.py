@@ -688,11 +688,9 @@ class No_Li_Im(Node, ViNodes):
     startframe: IntProperty(name = '', default = 0)
     endframe: IntProperty(name = '', default = 0)
     cusacc: StringProperty(
-            name="", description="Custom Radiance simulation parameters", default="", update = nodeupdate)
+            name="Custom parameters", description="Custom Radiance simulation parameters", default="", update = nodeupdate)
     simacc: EnumProperty(items=[("0", "Low", "Low accuracy and high speed (preview)"),("1", "Medium", "Medium speed and accuracy"), ("2", "High", "High but slow accuracy"), 
                                            ("3", "Custom", "Edit Radiance parameters")], name="", description="Simulation accuracy", default="0", update = nodeupdate)
-#    rpictparams = (("-ab", 2, 3, 4), ("-ad", 256, 1024, 4096), ("-as", 128, 512, 2048), ("-aa", 0, 0, 0), ("-dj", 0, 0.7, 1), 
-#                   ("-ds", 0.5, 0.15, 0.15), ("-dr", 1, 3, 5), ("-ss", 0, 2, 5), ("-st", 1, 0.75, 0.1), ("-lw", 0.0001, 0.00001, 0.0000002), ("-lr", 3, 3, 4), ("-pj", 0, 0.6, 0.9))
     pmap: BoolProperty(name = '', default = False, update = nodeupdate)
     pmapgno: IntProperty(name = '', default = 50000)
     pmapcno: IntProperty(name = '', default = 0)
@@ -741,7 +739,9 @@ class No_Li_Im(Node, ViNodes):
             newrow(layout, 'Accuracy:', self, 'simacc')
     
             if self.simacc == '3':
-                newrow(layout, "Radiance parameters:", self, 'cusacc')
+                row = layout.row()
+                row.prop(self, 'cusacc')
+
             newrow(layout, 'Photon map:', self, 'pmap')
     
             if self.pmap:
@@ -789,9 +789,6 @@ class No_Li_Im(Node, ViNodes):
         self['coptions'] = self.inputs['Context in'].links[0].from_node['Options']
         self['goptions'] = self.inputs['Geometry in'].links[0].from_node['Options']
         self['radfiles'], self['reslists'] = {}, [[]]
-#        self['radparams'] = ' {} '.format(self.cusacc) if self.simacc == '3' else (" {0[0]} {1[0]} {0[1]} {1[1]} {0[2]} {1[2]} {0[3]} {1[3]} {0[4]} {1[4]} {0[5]} {1[5]} {0[6]} {1[6]} {0[7]} {1[7]} {0[8]} {1[8]} {0[9]} {1[9]} {0[10]} {1[10]} ".format([n[0] for n in self.rpictparams], [n[int(self.simacc)+1] for n in self.rpictparams]))
-        self['rpictparams'] = ' {} '.format(self.cusacc) if self.simacc == '3' else ''.join([' {} {} '.format(k, rpictparams[k][int(self.simacc)]) for k in rpictparams])
-        self['rvuparams'] = ' {} '.format(self.cusacc) if self.simacc == '3' else ''.join([' {} {} '.format(k, rvuparams[k][int(self.simacc)]) for k in rvuparams])       
         self['basename'] = self.basename if self.basename else 'image'
         
         for frame in self['frames']:
