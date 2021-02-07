@@ -1010,9 +1010,7 @@ class No_Li_Sim(Node, ViNodes):
                newrow(layout, 'Caustic photons:', self, 'pmapcno')
                newrow(layout, 'Photon options:', self, 'pmapoptions')
                newrow(layout, 'Preview photons:', self, 'pmappreview')
-#               if self['coptions']['Context'] == 'Basic' or (self['coptions']['Context'] == 'CBDM' and self['coptions']['Type'] == '0'):
-                   
-    
+
             row = layout.row()
             row.label(text = "Accuracy:")            
             row.prop(self, self['simdict'][cinnode['Options']['Context']])
@@ -1032,9 +1030,6 @@ class No_Li_Sim(Node, ViNodes):
                 if [o for o in scene.objects if o.name in svp['liparams']['livic']]:
                     row = layout.row()
                     row.operator("node.livicalc", text = 'Calculate')
-                        
-#        except Exception as e:
-#            logentry('Problem with LiVi simulation: {}'.format(e))
 
     def update(self):
         if self.outputs.get('Results out'):
@@ -1069,11 +1064,10 @@ class No_Vi_SP(Node, ViNodes):
     def nodeupdate(self, context):
         nodecolour(self, self['exportstate'] != [str(x) for x in (self.suns)])
     
-    suns: EnumProperty(items = [('0', 'Single', 'Single sun'), ('1', 'Monthly', 'Monthly sun for chosen time'), ('2', 'Hourly', 'Hourly sun for chosen date')], name = '', description = 'Sunpath sun type', default = '0', update=nodeupdate)
-#    res: FloatProperty(name="", description="Calc point offset", min=1, max=10, default=6, update = nodeupdate)
+    suns: EnumProperty(items = [('0', 'Single', 'Single sun'), ('1', 'Monthly', 'Monthly sun for chosen time'), 
+    ('2', 'Hourly', 'Hourly sun for chosen date')], name = '', description = 'Sunpath sun type', default = '0', update=nodeupdate)
 
     def init(self, context):
-#        self['nodeid'] = nodeid(self)
         self.inputs.new('So_Vi_Loc', 'Location in')
         self['exportstate'] = '0'
         nodecolour(self, 1)
@@ -1122,8 +1116,10 @@ class No_Vi_WR(Node, ViNodes):
             newrow(layout, 'End day {}/{}:'.format(edate.day, edate.month), self, "edoy")
             newrow(layout, 'Colour:', context.scene.vi_params, 'vi_leg_col')
             newrow(layout, 'Max frequency:', self, 'max_freq')
+
             if self.max_freq == '1':
                newrow(layout, 'Frequency:', self, 'max_freq_val') 
+
             row = layout.row()
             row.operator("node.windrose", text="Create Wind Rose")
         else:
@@ -1381,9 +1377,11 @@ class No_En_Con(Node, ViNodes):
         row = layout.row()
         row.label(text = 'Animation:')
         row.prop(self, 'animated')
+
         if self.animated:
             newrow(layout, 'Start frame:', self, 'fs')
             newrow(layout, 'End frame:', self, 'fe')
+            
         newrow(layout, "Name/location", self, "loc")
         row = layout.row()
         row.label(text = 'Terrain:')
