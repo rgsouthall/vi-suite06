@@ -141,6 +141,7 @@ class No_Loc(Node, ViNodes):
         self.outputs.new('So_Vi_Loc', 'Location out')
         self['year'] = 2015
         self['entries'] = [('None', 'None', 'None')] 
+
         try:
             NodeTree.get_from_context(context).use_fake_user = True
         except:
@@ -159,6 +160,7 @@ class No_Loc(Node, ViNodes):
         else:
             newrow(layout, 'Latitude', context.scene.vi_params, "latitude")
             newrow(layout, 'Longitude', context.scene.vi_params, "longitude")
+
         if self['year'] == 2016:
             row = layout.row()
             row.label(text = 'Leap year file not supported')
@@ -197,7 +199,7 @@ class No_Li_Geo(Node, ViNodes):
     bl_icon = 'OBJECT_DATA'
     
     def ret_params(self):
-        return [str(x) for x in (self.animated, self.startframe, self.endframe, self.cpoint, self.offset, self.fallback)]
+        return ['{}'.format(x) for x in (self.animated, self.startframe, self.endframe, self.cpoint, self.offset, self.fallback)]
     
     def nodeupdate(self, context):
         nodecolour(self, self['exportstate'] != self.ret_params())
@@ -263,7 +265,7 @@ class No_Li_Con(Node, ViNodes):
     bl_icon = 'LIGHT_SUN'
     
     def ret_params(self):
-        return [str(x) for x in (self.contextmenu, self.spectrummenu, self.canalysismenu, self.cbanalysismenu, 
+        return ['{}'.format(x) for x in (self.contextmenu, self.skyprog, self.spectrummenu, self.canalysismenu, self.cbanalysismenu, 
                    self.animated, self.skymenu, '{:.2f}'.format(self.gref), self.shour, self.sdoy, self.startmonth, self.endmonth, self.damin, self.dasupp, self.dalux, self.daauto,
                    self.ehour, self.edoy, self.interval, self.hdr, self.hdrname, self.skyname, self.resname, self.turb, self.mtxname, self.cbdm_start_hour,
                    self.cbdm_end_hour, self.bambuildmenu, self.leed4, self.colour, self.cbdm_res, self.ay)]
@@ -754,6 +756,7 @@ class No_Li_Im(Node, ViNodes):
             if self.simacc != '3' or (self.simacc == '3' and self.validparams) and not self.run:
                 row = layout.row()
                 row.operator("node.radpreview", text = 'Preview') 
+
             newrow(layout, 'X resolution:', self, 'x')
             newrow(layout, 'Y resolution:', self, 'y')            
             
@@ -790,6 +793,8 @@ class No_Li_Im(Node, ViNodes):
         self['goptions'] = self.inputs['Geometry in'].links[0].from_node['Options']
         self['radfiles'], self['reslists'] = {}, [[]]
         self['basename'] = self.basename if self.basename else 'image'
+        self['rpictparams'] = ' {} '.format(self.cusacc) if self.simacc == '3' else ''.join([' {} {} '.format(k, rpictparams[k][int(self.simacc)]) for k in rpictparams])
+        self['rvuparams'] = ' {} '.format(self.cusacc) if self.simacc == '3' else ''.join([' {} {} '.format(k, rvuparams[k][int(self.simacc)]) for k in rvuparams])
         
         for frame in self['frames']:
             scene.frame_set(frame)

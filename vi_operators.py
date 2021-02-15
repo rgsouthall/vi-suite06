@@ -974,6 +974,7 @@ class NODE_OT_Li_Pre(bpy.types.Operator, ExportHelper):
                             occmd = "oconv -i '{0}-{1}.oct' '!pmapdump {0}-{1}.gpm{2}'".format(svp['viparams']['filebase'], frame, (' {}-{}.cpm'.format(svp['viparams']['filebase'], frame), '')[not self.simnode.pmapcno])
                         logentry('Running pmapdump: {}'.format(occmd))
                         Popen(shlex.split(occmd), stdout = octfile).wait()
+                        
                     rvucmd = 'rvu -w {9} -n {0} -vv {1:.3f} -vh {2:.3f} -vd {3[0]:.3f} {3[1]:.3f} {3[2]:.3f} -vp {4[0]:.3f} {4[1]:.3f} {4[2]:.3f} -vu {8[0]:.3f} {8[1]:.3f} {8[2]:.3f} {5} "{6}-{7}pmd.oct"'.format(svp['viparams']['wnproc'], 
                                  vv, cang, vd, cam.location, self.simnode['rvuparams'], svp['viparams']['filebase'], frame, cam.matrix_world.to_quaternion()@mathutils.Vector((0, 1, 0)), ('', '-i')[self.simnode.illu])
 
@@ -1093,14 +1094,17 @@ class NODE_OT_Li_Im(bpy.types.Operator):
                     self.images.append(os.path.join(self.folder, 'images', '{}-{}.hdr'.format(self.basename, self.frameold)))
                     self.frameold = self.frame
             else:
-                while sum([rp.poll() is None for rp in self.rpruns]) == 0 and len(self.rpruns) <= self.frames:
-                    with open("{}-{}.hdr".format(os.path.join(self.folder, 'images', self.basename), self.frame), 'w') as imfile:
-                        self.rpruns.append(Popen(shlex.split(self.rpictcmds[self.frame - self.fs]), stdout=imfile, stderr = PIPE))
-#                print([rp.poll() for rp in self.rpruns], [self.frame - self.fs])
+                while sum([rp.poll() is None for rp in self.rpruns]) < self.np and len(self.rpruns) < self.frames:
+                    f = self.fs + len(self.rpruns)
+                    
+                    with open("{}-{}.hdr".format(os.path.join(self.folder, 'images', self.basename), f), 'w') as imfile:
+                        self.rpruns.append(Popen(shlex.split(self.rpictcmds[len(self.rpruns)]), stdout=imfile, stderr = PIPE))
+
                 try:
                     if [rp.poll() for rp in self.rpruns][self.frame - self.fs] is not None:
                         self.images.append(os.path.join(self.folder, 'images', '{}-{}.hdr'.format(self.basename, self.frame)))
-                        self.frame += 1
+                        if self.frame < self.fe:
+                            self.frame += 1
                 except:
                     pass
                                         
@@ -1151,12 +1155,15 @@ class NODE_OT_Li_Im(bpy.types.Operator):
                     self.imupdate(self.fs + int(sum([rp.poll() is not None for rp in self.rpruns])/self.processes))
             
             elif self.pmfin and os.path.isfile(self.rpictfile):
-                lines = [line for line in open(self.rpictfile, 'r') if '% after' in line][::-1]                
+                lines = [line for line in open(self.rpictfile, 'r') if '% after' in line][::-1]   
+
                 if lines:
                     for lineentry in lines[0].split():
                         if '%' in lineentry and self.percent != (float(lineentry.strip('%')) + (f - self.fs) * 100)/self.frames:
-                            self.percent = (float(lineentry.strip('%')) + (f - self.fs) * 100)/self.frames
-                            self.imupdate(f)
+                            newpercent = (float(lineentry.strip('%')) * sum([r.poll() is None for r in self.rpruns]) + 100 * sum([r.poll() is not None for r in self.rpruns]))/self.frames
+                            if self.percent != newpercent:
+                                self.percent = newpercent
+                                self.imupdate(f)
                 
             return {'PASS_THROUGH'}
         else:
@@ -1166,13 +1173,14 @@ class NODE_OT_Li_Im(bpy.types.Operator):
         if 'liviimage' not in bpy.data.images:
             im = bpy.data.images.load("{}-{}.hdr".format(os.path.join(self.folder, 'images', self.basename), f))
             im.name = 'liviimage'
-            
-        bpy.data.images['liviimage'].filepath = "{}-{}.hdr".format(os.path.join(self.folder, 'images', self.basename), f)
-        bpy.data.images['liviimage'].reload()
 
-        for area in bpy.context.screen.areas:
-            if area.type =='IMAGE_EDITOR':
-                area.tag_redraw()
+        if os.path.isfile("{}-{}.hdr".format(os.path.join(self.folder, 'images', self.basename), f)):
+            bpy.data.images['liviimage'].filepath = "{}-{}.hdr".format(os.path.join(self.folder, 'images', self.basename), f)
+            bpy.data.images['liviimage'].reload()
+
+            for area in bpy.context.screen.areas:
+                if area.type =='IMAGE_EDITOR':
+                    area.tag_redraw()
         
     def terminate(self):
         self.kivyrun.kill() 
@@ -1220,6 +1228,7 @@ class NODE_OT_Li_Im(bpy.types.Operator):
             self.pmapcnos = simnode['pmapcnos']
             self.folder = svp['viparams']['newdir']
             self.fb = svp['viparams']['filebase']
+            self.np = int(svp['viparams']['nproc'])
             self.mp = 0 if sys.platform == 'win32' else simnode.mp 
             self.basename = simnode['basename']
             
@@ -1304,16 +1313,23 @@ class NODE_OT_Li_Gl(bpy.types.Operator):
             with open('{}.temphdr'.format(os.path.join(svp['viparams']['newdir'], 'images', 'glare')), 'w') as temphdr:
                 Popen(shlex.split(pcondcmd), stdout = temphdr).communicate()
 
-            catcmd = "{0} {1}.glare".format(svp['viparams']['cat'], os.path.join(svp['viparams']['newdir'], 'images', 'temp'))
-            catrun = Popen(shlex.split(catcmd), stdout = PIPE, shell = True)
             psigncmd = "psign -h {} -cb 0 0 0 -cf 1 1 1".format(int(0.04 * imnode.y))
-            psignrun = Popen(shlex.split(psigncmd), stdin = catrun.stdout, stdout = PIPE)
+            logentry('Running psign with command: {}'.format(psigncmd))
+
+            with open(os.path.join(svp['viparams']['newdir'], 'images', "temp.glare"), "r") as catfile:
+                psignrun = Popen(shlex.split(psigncmd), stdin = catfile, stdout = PIPE, stderr = PIPE) 
+            
+            for line in psignrun.stderr:
+                logentry('Psign error: {}'.format(line.decode())) 
+
             pcompcmd = "pcompos {0}.temphdr 0 0 - {1} {2}".format(os.path.join(svp['viparams']['newdir'], 'images', 'glare'), imnode.x, imnode.y*550/800)
+            logentry('Running pcompos with command: {}'.format(pcompcmd))
 
             with open("{}.hdr".format(os.path.join(svp['viparams']['newdir'], 'images', '{}-{}'.format(glnode['hdrname'], str(i + svp['liparams']['fs'])))), 'w') as ghdr:
                 Popen(shlex.split(pcompcmd), stdin = psignrun.stdout, stdout = ghdr).communicate()
 
-            os.remove(os.path.join(svp['viparams']['newdir'], 'images', 'glare.temphdr'.format(i + svp['liparams']['fs'])))  
+            os.remove(os.path.join(svp['viparams']['newdir'], 'images', 'glare.temphdr'))  
+            os.remove(os.path.join(svp['viparams']['newdir'], 'images', 'temp.glare'))  
             glnode.postsim()                             
         return {'FINISHED'}
 
