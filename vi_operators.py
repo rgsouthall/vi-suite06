@@ -1073,6 +1073,7 @@ class NODE_OT_Li_Im(bpy.types.Operator):
         if self.pmfin:   
             if len(self.rpruns) == 0:
                 self.pfile = progressfile(self.folder, datetime.datetime.now(), 100)
+
                 if len(self.pmruns):
                     self.kivyrun = progressbar(os.path.join(self.folder, 'viprogress'), 'Radiance Image')
             
@@ -1085,7 +1086,7 @@ class NODE_OT_Li_Im(bpy.types.Operator):
                         if os.path.isfile("{}-{}.hdr".format(os.path.join(self.folder, 'images', self.basename), self.frame)):
                             os.remove("{}-{}.hdr".format(os.path.join(self.folder, 'images', self.basename), self.frame))
                         logentry('rpiece command: {}'.format(self.rpiececmds[self.frame - self.fs]))
-                    self.xindex += 1
+                    self.xindex += 1                    
                 
                 if self.xindex == self.processes:   
                     self.frame += 1                
@@ -1110,6 +1111,7 @@ class NODE_OT_Li_Im(bpy.types.Operator):
                                         
         if event.type == 'TIMER':            
             f = self.frame if self.frame <= self.fe else self.fe
+
             if self.pmfin and not self.rpruns:
                 for line in self.pmruns[0].stderr:
                     logentry('Photon mapping error: {}'.format(line.decode()))
@@ -1147,6 +1149,7 @@ class NODE_OT_Li_Im(bpy.types.Operator):
                             return {'CANCELLED'}
                         
                 self.imupdate(f)
+#                print(len(self.rpruns))
                 return {self.terminate()}
 
             elif self.pmfin and self.mp:

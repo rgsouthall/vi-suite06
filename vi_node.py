@@ -762,6 +762,7 @@ class No_Li_Im(Node, ViNodes):
             
             if sys.platform != 'win32':
                 newrow(layout, 'Multi-thread:', self, 'mp')
+                
                 if self.mp:
                     row = layout.row()
                     row.prop(self, '["Processors"]')
@@ -2206,7 +2207,9 @@ class No_Vi_Metrics(Node, ViNodes):
                 #                 self['res']['temperature'] = [float(p) for p in r[4].split()][-1]
                 #             elif r[3] == 'Speed':
                 #                 self['res']['speed'] = [float(p) for p in r[4].split()][-1]
-
+        else:
+            if self.zone_menu != 'None':
+                self.zone_menu = 'None' 
                     
     def ret_metrics(self):
         if self.inputs['Results in'].links:
@@ -4918,8 +4921,7 @@ class No_En_Mat_Con(Node, EnViMatNodes):
                                             description = "Specify the construction type", 
                                             default = "None", update = con_update)
     envi_con_makeup: EnumProperty(items = [("0", "Pre-set", "Construction pre-set"),
-                                            ("1", "Layers", "Custom layers"),
-                                            ("2", "Dummy", "Adiabatic")], 
+                                            ("1", "Layers", "Custom layers")], 
                                             name = "", 
                                             description = "Pre-set construction of custom layers", 
                                             default = "0", update = con_update)
@@ -5323,7 +5325,7 @@ class No_En_Mat_Con(Node, EnViMatNodes):
                 
             elif self.fclass == '2':
                 ep_text += self.layer_write(self.inputs['Outer frame layer'], mn)
-        
+     
         return ep_text
     
     def layer_write(self, in_sock, matname):

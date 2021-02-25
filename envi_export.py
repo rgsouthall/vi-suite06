@@ -521,8 +521,10 @@ def pregeo(context, op):
             bpy.ops.object.join()
             new_ob = bpy.context.active_object
             new_ob.name = '{}'.format(chil.name)
+
             if therm:
                 new_ob.vi_params.envi_type = '0' 
+                
             bm = bmesh.new()
             bm.from_mesh(new_ob.evaluated_get(depsgraph).to_mesh())
             bm.transform(new_ob.matrix_world)
