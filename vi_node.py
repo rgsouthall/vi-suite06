@@ -1933,8 +1933,7 @@ class No_Vi_Metrics(Node, ViNodes):
 
         elif self.metric == '1':
             if self.light_menu == '0':
-                areaDF = 'N/A' if self['res']['areaDF'] < 0 else self['res']['areaDF']
-                    
+                areaDF = 'N/A' if self['res']['areaDF'] < 0 else self['res']['areaDF']                    
                 row = layout.row()
                 row.label(text = "Compliant area: {}%".format(areaDF))
 
@@ -1946,6 +1945,7 @@ class No_Vi_Metrics(Node, ViNodes):
                     udfpass = '(FAIL UDF < 0.4)' if self['res']['ratioDF'] < 0.4 else '(PASS UDF >= 0.4)'
                     avDF = self['res']['avDF']
                     uDF = self['res']['ratioDF']
+                    
                 row = layout.row()
                 row.label(text = "Average DF: {} {}".format(self['res']['avDF'], dfpass))
                 row = layout.row()

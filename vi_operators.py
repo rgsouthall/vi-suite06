@@ -2620,11 +2620,14 @@ class NODE_OT_Flo_NG(bpy.types.Operator):
             
         for mi, m in enumerate(meshes):   
             pmap1 = { }
+
             for e in m.Elements2D():
                 for v in e.vertices:
                     if (v not in pmap1):
                         pmap1[v] = totmesh.Add(m[v])
+                
                 totmesh.Add(Element2D(e.index, [pmap1[v] for v in e.vertices]))
+
         totmesh.Save(os.path.join(svp['flparams']['offilebase'], 'ng_surf.vol'))
 
         try:
@@ -2672,6 +2675,7 @@ class NODE_OT_Flo_NG(bpy.types.Operator):
                             if omi < len(ns):
                                 bfile.write(write_bound(obs[mi], m, ns[omi], nf[omi]))
                                 omi += 1
+                                
                     bfile.write(')\n\n// **\n')
                     
                 for file in os.listdir(svp['flparams']['ofcpfilebase']):
@@ -2745,6 +2749,7 @@ class NODE_OT_Flo_NG(bpy.types.Operator):
                                 if omi < len(ns):
                                     bfile.write(write_bound(obs[mi], m, ns[omi], nf[omi]))
                                     omi += 1
+
                         bfile.write(')\n\n// **\n')
                         
                     for file in os.listdir(svp['flparams']['ofcpfilebase']):
@@ -2876,6 +2881,8 @@ class NODE_OT_Flo_Bound(bpy.types.Operator):
 
         if boundnode.pv:
             subprocess.Popen(shlex.split('foamExec paraFoam -builtin -case {}'.format(svp['flparams']['offilebase'])))
+        else:
+            open("{}".format(os.path.join(svp['flparams']['offilebase'], 'project.foam')), "w")
             
         boundnode.post_export()
         return {'FINISHED'}
@@ -2888,6 +2895,8 @@ class NODE_OT_Flo_Sim(bpy.types.Operator):
     bl_undo = True
     
     def modal(self, context, event):
+        svp = context.scene.vi_params
+
         if self.run.poll() is None and self.kivyrun.poll() is None:
             with open(self.fpfile, 'r') as fpfile:
                 lines = fpfile.readlines()[::-1]
@@ -2920,17 +2929,19 @@ class NODE_OT_Flo_Sim(bpy.types.Operator):
             self.kivyrun.kill()
             
             if self.processes > 1:
-                Popen(shlex.split("foamExec reconstructPar -case {}".format(context.scene.vi_params['flparams']['offilebase']))).wait()
+                Popen(shlex.split("foamExec reconstructPar -case {}".format(svp['flparams']['offilebase']))).wait()
                 
-            Popen(shlex.split("foamExec postProcess -func writeCellCentres -case {}".format(context.scene.vi_params['flparams']['offilebase']))).wait()
+            Popen(shlex.split("foamExec postProcess -func writeCellCentres -case {}".format(svp['flparams']['offilebase']))).wait()
             
             if self.pv:
-                Popen(shlex.split("foamExec paraFoam -builtin -case {}".format(context.scene.vi_params['flparams']['offilebase'])))
+                Popen(shlex.split("foamExec paraFoam -builtin -case {}".format(svp['flparams']['offilebase'])))
+            else:
+                open("{}".format(os.path.join(svp['flparams']['offilebase'], 'project.foam')), "w")
 
             reslists = []
 
-            if os.path.isdir(os.path.join(context.scene.vi_params['flparams']['offilebase'], 'postProcessing', 'probes', '0')):
-                probed = os.path.join(context.scene.vi_params['flparams']['offilebase'], 'postProcessing', 'probes', '0')
+            if os.path.isdir(os.path.join(svp['flparams']['offilebase'], 'postProcessing', 'probes', '0')):
+                probed = os.path.join(svp['flparams']['offilebase'], 'postProcessing', 'probes', '0')
                 resdict = {'p': 'Pressure', 'U': 'Speed', 'T': 'Temperature', 'Ux': 'X velocity', 'Uy': 'Y velocity', 'Uz': 'Z velocity'}
 
                 for f in os.listdir(probed):
@@ -2944,7 +2955,7 @@ class NODE_OT_Flo_Sim(bpy.types.Operator):
                             resarray = transpose(resarray)
                                     
                         for ri, r in enumerate(resarray[1:]):
-                            reslists.append([str(context.scene.frame_current), 'Zone', context.scene.vi_params['flparams']['probes'][ri], resdict[f], ' '.join(['{:5f}'.format(float(res)) for res in r])])
+                            reslists.append([str(context.scene.frame_current), 'Zone', svp['flparams']['probes'][ri], resdict[f], ' '.join(['{:5f}'.format(float(res)) for res in r])])
 
                 reslists.append([str(context.scene.frame_current), 'Time', '', 'Steps', ' '.join(['{}'.format(f) for f in resarray[0]])])
                 self.simnode['reslists'] = reslists

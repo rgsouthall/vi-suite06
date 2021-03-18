@@ -268,11 +268,14 @@ def fvmat(self, mn, bound):
     
     if bound == 'p':
         val = 'uniform {}'.format(self.flovi_bmbp_val) if not self.flovi_p_field else '$internalField'
-        pdict = {'0': self.flovi_bmbp_subtype, '1': self.flovi_bmbp_subtype, '2': 'symmetryPlane', '3': 'empty'}
-        ptdict = {'zeroGradient': 'zeroGradient', 'fixedValue': 'fixedValue;\n    value    {}'.format(val), 
+        pdict = {'0': self.flovi_bmbp_subtype, '1': self.flovi_bmbp_subtype, '2': 'symmetry', '3': 'empty'}
+        ptdict = {'zeroGradient': 'zeroGradient', 
+                'fixedValue': 'fixedValue;\n    value    {}'.format(val), 
                 'calculated': 'calculated;\n    value    $internalField', 
                 'freestreamPressure': 'freestreamPressure', 
-                'totalPressure': 'totalPressure;\n    p0      uniform {};\n    gamma    {};\n    value    {}'.format(self.flovi_bmbp_p0val, self.flovi_bmbp_gamma, val), 'symmetry': 'symmetry', 'empty': 'empty'}
+                'totalPressure': 'totalPressure;\n    p0      uniform {};\n    gamma    {};\n    value    {}'.format(self.flovi_bmbp_p0val, self.flovi_bmbp_gamma, val), 
+                'symmetry': 'symmetry', 
+                'empty': 'empty'}
 #        if pdict[self.flovi_bmb_type] == 'zeroGradient':
         entry = ptdict[pdict[self.flovi_bmb_type]]            
 #        return begin + entry + end 
@@ -284,7 +287,7 @@ def fvmat(self, mn, bound):
             val = 'uniform ({:.4f} {:.4f} {:.4f})'.format(self.flovi_u_speed * sin(pi*self.flovi_u_azi/180), 
             self.flovi_u_speed * cos(pi*self.flovi_u_azi/180), 0) if not self.flovi_u_field else '$internalField'
 
-        Udict = {'0': self.flovi_bmbu_subtype, '1': self.flovi_bmbu_subtype, '2': 'symmetryPlane', '3': 'empty'}
+        Udict = {'0': self.flovi_bmbu_subtype, '1': self.flovi_bmbu_subtype, '2': 'symmetry', '3': 'empty'}
         Utdict = {'fixedValue': 'fixedValue;\n    value    {}'.format(val), 'slip': 'slip', 'noSlip': 'noSlip', 
                   'inletOutlet': 'inletOutlet;\n    inletValue    $internalField;\n    value    $internalField',
                   'pressureInletOutletVelocity': 'pressureInletOutletVelocity;\n    value    $internalField', 
@@ -662,7 +665,6 @@ def fvrpwrite(node, solver):
     # return text
     
 def fvschwrite(node, solver): 
-    print(solver)
     htext = ofheader + write_ffile('dictionary', 'system', 'fvSchemes') 
     scdict = {'if': {'ddtSchemes': {'default': 'Euler'}, 
                     'gradSchemes': {'default': 'Gauss linear', 'grad(p)': 'Gauss linear'},
@@ -716,9 +718,7 @@ def fvschwrite(node, solver):
         if solver == 'sf':
             scdict[solver]['gradSchemes']['grad(nuTilda)'] = '$limited'
  
-    return write_fvdict(htext, scdict[solver])
-
-    
+    return write_fvdict(htext, scdict[solver]) 
 
 def fvgwrite():
     htext = ofheader + write_ffile('uniformDimensionedVectorField', '"constant"', 'g')
@@ -800,7 +800,7 @@ def fvsfewrite(fvos):
 
 def fvobjwrite(scene, fvos, bmo):
     objheader = '# FloVi obj exporter\n'
-#    bmomw, bmovs = bmo.matrix_world, [vert for vert in bmo.data.vertices]
+
     for o in fvos:
         with open(os.path.join(scene['flparams']['ofctsfilebase'], '{}.obj'.format(o.name)), 'w') as objfile:
             bm = bmesh.new()
@@ -808,19 +808,22 @@ def fvobjwrite(scene, fvos, bmo):
             bm.from_mesh(tempmesh)
             bm.transform(o.matrix_world)
             bm.transform(mathutils.Matrix.Translation(bmo['flovi_translate']))
-            bpy.data.meshes.remove(tempmesh)
+            bpy.data.meshes.remove(tempmesh)   
+            vcos =  ''.join(['v {0[0]} {0[1]} {0[2]}\n'.format(v.co) for v in bm.verts])    
+            objfile.write(objheader+vcos)
+
+            for m, mat in enumerate(o.data.materials):
+                objfile.write('g {}\n'.format(mat.name) + ''.join(['f {} {} {}\n'.format(*[v.index + 1 for v in f.verts]) for f in bmesh.ops.triangulate(bm, faces = bm.faces)['faces'] if f.material_index == m]))
+            
+            objfile.write('#{}'.format(len(bm.faces)))
+            bm.free()
+
 #            omw, ovs = o.matrix_world, [vert for vert in o.data.vertices]
 #            xvec, yvec, zvec = (bmomw*bmovs[3].co - bmomw*bmovs[0].co).normalized(), (bmomw*bmovs[2].co - bmomw*bmovs[3].co).normalized(), (bmomw*bmovs[4].co - bmomw*bmovs[0].co).normalized() 
 #            ofvpos = [[(omw*ov.co - bmomw*bmovs[0].co)*vec for vec in (xvec, yvec, zvec)] for ov in ovs]
 #            bm = bmesh.new()
 #            bm.from_mesh(o.data)
-#            vcos = ''.join(['v {} {} {}\n'.format(*ofvpo) for ofvpo in ofvpos])    
-            vcos =  ''.join(['v {0[0]} {0[1]} {0[2]}\n'.format(v.co) for v in bm.verts])    
-            objfile.write(objheader+vcos)
-            for m, mat in enumerate(o.data.materials):
-                objfile.write('g {}\n'.format(mat.name) + ''.join(['f {} {} {}\n'.format(*[v.index + 1 for v in f.verts]) for f in bmesh.ops.triangulate(bm, faces = bm.faces)['faces'] if f.material_index == m]))
-            objfile.write('#{}'.format(len(bm.faces)))
-            bm.free()
+#            vcos = ''.join(['v {} {} {}\n'.format(*ofvpo) for ofvpo in ofvpos]) 
             
 # def fvsolwrite(node):
 #     header = ofheader + fileheader('fvSolution')

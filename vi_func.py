@@ -1070,6 +1070,7 @@ def spathrange(mats):
         spro.material_slots[-1].material = mats[param[2]]
         morn = solarRiseSet(param[0], 0, bpy.context.scene.latitude, bpy.context.scene.longitude, 'morn')
         eve = solarRiseSet(param[0], 0, bpy.context.scene.latitude, bpy.context.scene.longitude, 'eve')
+        
         if morn or param[2] == 0:
             if morn:
                 mornevediff = eve - morn if bpy.context.scene.latitude >= 0 else 360 - eve + morn
