@@ -1565,7 +1565,6 @@ class NODE_OT_En_Sim(bpy.types.Operator):
                             self.percent = 100 * int(resline.split(',')[1])/(self.simnode.dedoy - self.simnode.dsdoy)
                             break
                 except:
-#                    pass
                     logentry('There was an error in the EnVi simulation. Check the error log in the text editor')
 #                    return {self.terminate('CANCELLED', context)}
                 
@@ -1682,6 +1681,7 @@ class OBJECT_OT_VIGridify2(bpy.types.Operator):
         mesh.faces.ensure_lookup_table()
         mesh.verts.ensure_lookup_table()
         fs = [f for f in mesh.faces[:] if f.select]
+
         if fs:
             self.upv = fs[0].calc_tangent_edge().copy().normalized()
             self.norm = fs[0].normal.copy()
