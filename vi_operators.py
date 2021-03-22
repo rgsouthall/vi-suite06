@@ -1149,7 +1149,7 @@ class NODE_OT_Li_Im(bpy.types.Operator):
                             return {'CANCELLED'}
                         
                 self.imupdate(f)
-#                print(len(self.rpruns))
+
                 return {self.terminate()}
 
             elif self.pmfin and self.mp:
@@ -2848,17 +2848,21 @@ class NODE_OT_Flo_NG(bpy.types.Operator):
                     
                     for face in o.data.polygons:
                         mi = 0
+                        
                         for ni, n in enumerate(ns):
                             if face.index >= n and face.index <= n + nf[ni]:
                                 face.material_index = ni
                                 mi = 1
+                        
                         if not mi:
                             face.material_index = len(ns)
 
                     expnode.post_export()
+
         except Exception as e:
            logentry("Netgen error: {}".format(e))
            return {'CANCELLED'}
+
         return {'FINISHED'}
     
 class NODE_OT_Flo_Bound(bpy.types.Operator):
@@ -2984,14 +2988,14 @@ class NODE_OT_Flo_Sim(bpy.types.Operator):
         self.pfile = fvprogressfile(svp['viparams']['newdir'])
         self.kivyrun = fvprogressbar(os.path.join(svp['viparams']['newdir'], 'viprogress'), str(self.residuals))
         self.pv = self.simnode.pv
-        
+
         with open(self.fpfile, 'w') as fvprogress:
             if self.processes > 1:
                 with open(os.path.join(svp['flparams']['ofsfilebase'], 'decomposeParDict'), 'w') as fvdcpfile:
                     fvdcpfile.write(fvdcpwrite(self.processes))
 
                 Popen(shlex.split("foamExec decomposePar -force -case {}".format(svp['flparams']['offilebase']))).wait()
-                self.run = Popen(shlex.split('mpirun --oversubscribe -np {} foamExec {} -parallel -case {}'.format(self.processes, svp['flparams']['solver'], svp['flparams']['offilebase'])), stdout = fvprogress)
+                self.run = Popen(shlex.split('mpirun -mca opal_warn_on_missing_libcuda 0 --oversubscribe -np {} foamExec {} -parallel -case {}'.format(self.processes, svp['flparams']['solver'], svp['flparams']['offilebase'])), stdout = fvprogress)
             else:
                 self.run = Popen(shlex.split('{} {} {} {}'.format('foamExec', svp['flparams']['solver'], "-case", svp['flparams']['offilebase'])), stdout = fvprogress)
 
