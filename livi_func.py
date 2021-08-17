@@ -279,10 +279,7 @@ def cbdmhdr(node, scene):
         pcombfiles = ''.join(["{} ".format(os.path.join(svp['viparams']['newdir'], 'ps{}.hdr'.format(i))) for i in range(patches)])
         vwcmd = 'vwrays -ff -x 600 -y 600 -vta -vp 0 0 0 -vd 0 1 0 -vu 0 0 1 -vh 360 -vv 360 -vo 0 -va 0 -vs 0 -vl 0'
         rcontribcmd = 'rcontrib -bn {} -fo -ab 0 -ad 1 -n {} -ffc -x 600 -y 600 -ld- -V+ -f reinhart{}.cal -b rbin -o "{}" -m sky_glow "{}-whitesky.oct"'.format(patches, svp['viparams']['nproc'], 
-                                                           node.cbdm_res,
-                                                           os.path.join(svp['viparams']['newdir'], 'p%d.hdr'), 
-                                                           os.path.join(svp['viparams']['newdir'], 
-                                                                        svp['viparams']['filename']))
+                       node.cbdm_res, os.path.join(svp['viparams']['newdir'], 'p%d.hdr'), os.path.join(svp['viparams']['newdir'], svp['viparams']['filename']))
 
         vwrun = Popen(shlex.split(vwcmd), stdout = PIPE)
         rcrun = Popen(shlex.split(rcontribcmd), stderr = PIPE, stdin = vwrun.stdout)
@@ -295,7 +292,10 @@ def cbdmhdr(node, scene):
                 Popen(shlex.split('pcomb -s {} "{}"'.format(vals[j], os.path.join(svp['viparams']['newdir'], 'p{}.hdr'.format(j)))), stdout = psfile).wait()
         
         with open(targethdr, 'w') as epwhdr:
-            Popen(shlex.split('pcomb -h {}'.format(pcombfiles)), stdout = epwhdr).wait()
+            if sys.platform == 'win32':
+                Popen("pcomb -h {}".format(pcombfiles), stdout = epwhdr).wait()
+            else:
+                Popen(shlex.split('pcomb -h {}'.format(pcombfiles)), stdout = epwhdr).wait()
         
         [os.remove(os.path.join(svp['viparams']['newdir'], 'p{}.hdr'.format(i))) for i in range (patches)]
         [os.remove(os.path.join(svp['viparams']['newdir'], 'ps{}.hdr'.format(i))) for i in range (patches)]
